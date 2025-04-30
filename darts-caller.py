@@ -41,8 +41,10 @@ if plat == 'Windows':
 
 sh = logging.StreamHandler()
 sh.setLevel(logging.INFO)
+
 formatter = logging.Formatter('%(message)s')
 sh.setFormatter(formatter)
+
 logger=logging.getLogger()
 logger.handlers.clear()
 logger.setLevel(logging.INFO)
@@ -52,14 +54,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'caller for autodarts'
 socketio = SocketIO(app, async_mode="threading")
 
-
-
 main_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(main_directory)
 
-
 VERSION = '2.14.0'
-
 
 DEFAULT_EMPTY_PATH = ''
 DEFAULT_CALLER_VOLUME = 1.0
@@ -107,11 +105,13 @@ AUTODARTS_USERS_URL = 'https://api.autodarts.io/as/v0/users/'
 AUTODARTS_WEBSOCKET_URL = 'wss://api.autodarts.io/ms/v0/subscribe'
 
 SUPPORTED_SOUND_FORMATS = ['.mp3', '.wav']
-SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Tactics', 'Random Checkout', 'ATC', 'RTW']
+SUPPORTED_GAME_VARIANTS = ['X01', 'Gotcha', 'Cricket','Tactics', 'Random Checkout', 'ATC', 'RTW']
+SUPPORTED_GAME_MODES = ['Cricket', 'Tactics']
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
 SUPPORTED_TACTICS_FIELDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25]
 BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 TEMPLATE_FILE_ENCODING = 'utf-8-sig'
+
 
 WEB_DB_NAME = "ADC1"
 
@@ -251,7 +251,7 @@ CALLER_PROFILES = {
 
 
 
-def ppi(message, info_object = None, prefix = '\r\n'):
+def ppi(message, info_object = None, prefix = ''):
     logger.info(prefix + str(message))
     if info_object != None:
         logger.info(str(info_object))
@@ -260,6 +260,16 @@ def ppe(message, error_object):
     ppi(message)
     if DEBUG:
         logger.exception("\r\n" + str(error_object))
+        
+def ppf(message, info_object = None, prefix = ''):
+    # ppi(message)
+    logger.info(prefix + str(message))
+    fh = logging.FileHandler('darts-caller_log.log')
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+
+    if info_object != None:
+        logger.info(str(info_object))
 
 def get_executable_directory():
     if getattr(sys, 'frozen', False):
@@ -351,7 +361,7 @@ def download_callers():
                 downloads_filtered[speaker_versionized] = speaker_download_url
                 break
                
-            if speaker_versionized_lower not in caller_profiles_banned and spn not in caller_profiles_banned:  
+            if speaker_versionized_lower not in caller_Profiles_Banned and spn not in caller_Profiles_Banned:  
                 # ppi("spn: " + spn)
                 # ppi("dl_name: " + dl_name)
                 # ppi("speaker_versionized: " + speaker_versionized.lower())
@@ -494,11 +504,11 @@ def download_callers():
                 shutil.rmtree(DOWNLOADS_PATH, ignore_errors=True)
 
 def ban_caller(only_change):
-    global caller_title
-    global caller_title_without_version
+    global caller_Title
+    global caller_Title_Without_Version
 
     # ban/change not possible as caller is specified by user or current caller is 'None'
-    if (CALLER != DEFAULT_CALLER and CALLER != '' and caller_title != '' and caller_title != None):
+    if (CALLER != DEFAULT_CALLER and CALLER != '' and caller_Title != '' and caller_Title != None):
        return
     
     if only_change:
@@ -512,31 +522,31 @@ def ban_caller(only_change):
             play_sound_effect('control', wait_for_last = False, volume_mult = 1.0, mod = False)
 
 
-        global caller_profiles_banned
-        caller_profiles_banned.append(caller_title_without_version)
+        global caller_Profiles_Banned
+        caller_Profiles_Banned.append(caller_Title_Without_Version)
         path_to_callers_banned_file = os.path.join(AUDIO_MEDIA_PATH, DEFAULT_CALLERS_BANNED_FILE)   
         with open(path_to_callers_banned_file, 'w') as bcf:
-            for cpb in caller_profiles_banned:
+            for cpb in caller_Profiles_Banned:
                 bcf.write(cpb.lower() + '\n')
 
     mirror_sounds()
     setup_caller(hi=True)
     
 def favor_caller(unfavor):
-    global caller_title_without_version
-    global caller_profiles_favoured
+    global caller_Title_Without_Version
+    global caller_Profiles_Favoured
 
-    if caller_title_without_version == '':
+    if caller_Title_Without_Version == '':
         return
     
     if unfavor:
-        caller_profiles_favoured.remove(caller_title_without_version)
+        caller_Profiles_Favoured.remove(caller_Title_Without_Version)
     else:
-        caller_profiles_favoured.append(caller_title_without_version)
+        caller_Profiles_Favoured.append(caller_Title_Without_Version)
 
     path_to_callers_favoured_file = os.path.join(AUDIO_MEDIA_PATH, DEFAULT_CALLERS_FAVOURED_FILE)   
     with open(path_to_callers_favoured_file, 'w') as fcf:
-        for cpf in caller_profiles_favoured:
+        for cpf in caller_Profiles_Favoured:
             fcf.write(cpf.lower() + '\n')
 
 def delete_old_callers():
@@ -570,16 +580,16 @@ def delete_old_callers():
                     ppi(f"Removed old voice-pack: {folder}")
 
 def load_callers_banned():
-    global caller_profiles_banned
-    caller_profiles_banned = []
+    global caller_Profiles_Banned
+    caller_Profiles_Banned = []
     
     path_to_callers_banned_file = os.path.join(AUDIO_MEDIA_PATH, DEFAULT_CALLERS_BANNED_FILE)
     
     if os.path.exists(path_to_callers_banned_file):
         try:
             with open(path_to_callers_banned_file, 'r') as bcf:
-                caller_profiles_banned = list(set(line.strip() for line in bcf))
-                display_caller_list(caller_profiles_banned, "BANNED VOICE-PACKS")
+                caller_Profiles_Banned = list(set(line.strip() for line in bcf))
+                display_caller_list(caller_Profiles_Banned, "BANNED VOICE-PACKS")
         except FileExistsError:
             pass
     else:
@@ -590,16 +600,16 @@ def load_callers_banned():
             ppe(f"Failed to create '{path_to_callers_banned_file}'", e)
 
 def load_callers_favoured():
-    global caller_profiles_favoured
-    caller_profiles_favoured = []
+    global caller_Profiles_Favoured
+    caller_Profiles_Favoured = []
         
     path_to_callers_favoured_file = os.path.join(AUDIO_MEDIA_PATH, DEFAULT_CALLERS_FAVOURED_FILE)
     
     if os.path.exists(path_to_callers_favoured_file):
         try:
             with open(path_to_callers_favoured_file, 'r') as bcf:
-                caller_profiles_favoured = list(set(line.strip() for line in bcf))
-                display_caller_list(caller_profiles_favoured, "FAVOURED VOICE-PACKS")
+                caller_Profiles_Favoured = list(set(line.strip() for line in bcf))
+                display_caller_list(caller_Profiles_Favoured, "FAVOURED VOICE-PACKS")
         except FileExistsError:
             pass
     else:
@@ -610,8 +620,8 @@ def load_callers_favoured():
             ppe(f"Failed to create '{path_to_callers_favoured_file}'", e)
 
 def load_callers():
-    global callers_profiles_all
-    callers_profiles_all = []
+    global caller_Profiles_All
+    caller_Profiles_All = []
 
     # load shared-sounds
     shared_sounds = {}
@@ -642,11 +652,11 @@ def load_callers():
                 else:
                     file_dict[key] = [full_path]
         if file_dict:
-            callers_profiles_all.append((root, file_dict))
+            caller_Profiles_All.append((root, file_dict))
         
     # add shared-sounds to callers
     for ss_k, ss_v in shared_sounds.items():
-        for (root, c_keys) in callers_profiles_all:
+        for (root, c_keys) in caller_Profiles_All:
             c_keys[ss_k] = ss_v
 
 
@@ -720,25 +730,25 @@ def filter_most_recent_versions(voices):
     return filtered_voices
 
 def setup_caller(hi = False):
-    global callers_profiles_all
-    global caller_profiles_banned
+    global caller_Profiles_All
+    global caller_Profiles_Banned
     global CALLER
     global caller
-    global caller_title
-    global caller_title_without_version
-    global callers_available
-    global caller_profiles_favoured
+    global caller_Title
+    global caller_Title_Without_Version
+    global caller_Available
+    global caller_Profiles_Favoured
     caller = None
-    caller_title = ''
-    caller_title_without_version = ''
+    caller_Title = ''
+    caller_Title_Without_Version = ''
 
 
     # filter callers by blacklist, language, gender and most recent version
-    callers_filtered = []
-    for c in callers_profiles_all:
+    caller_Filtered = []
+    for c in caller_Profiles_All:
         (caller_name, caller_name_with_version) = grab_caller_name(c[0])
 
-        if caller_name in caller_profiles_banned or caller_name_with_version in caller_profiles_banned:
+        if caller_name in caller_Profiles_Banned or caller_name_with_version in caller_Profiles_Banned:
             continue
 
         if CALLER != DEFAULT_CALLER and CALLER != '' and caller_name_with_version.startswith(CALLER.lower()):
@@ -752,23 +762,23 @@ def setup_caller(hi = False):
                 caller_gender_key = grab_caller_gender(caller_name)
                 if caller_gender_key != RANDOM_CALLER_GENDER:
                     continue      
-        callers_filtered.append(c)
-    if len(callers_filtered) > 0:
-        callers_filtered = filter_most_recent_versions(callers_filtered)
+        caller_Filtered.append(c)
+    if len(caller_Filtered) > 0:
+        caller_Filtered = filter_most_recent_versions(caller_Filtered)
             
     # store available caller names
-    callers_available = []
-    for cf in callers_filtered:
+    caller_Available = []
+    for cf in caller_Filtered:
         (caller_name, caller_name_with_version) = grab_caller_name(cf[0])
-        callers_available.append(caller_name)
+        caller_Available.append(caller_name)
     
-    display_caller_list(callers_available, "AVAILABLE VOICE-PACKS")
+    display_caller_list(caller_Available, "AVAILABLE VOICE-PACKS")
 
 
     # specific caller
     if CALLER != DEFAULT_CALLER and CALLER != '':
         (wished_caller, wished_caller_with_version) = grab_caller_name(CALLER)
-        for cf in callers_filtered:
+        for cf in caller_Filtered:
             (caller_name, caller_name_with_version) = grab_caller_name(cf[0])         
 
             if caller_name_with_version.startswith(wished_caller_with_version):
@@ -782,11 +792,11 @@ def setup_caller(hi = False):
 
     # random caller
     else:
-        if len(callers_filtered) > 0:
+        if len(caller_Filtered) > 0:
             if RANDOM_CALLER == 0:
-                caller = callers_filtered[0]
+                caller = caller_Filtered[0]
             else:
-                caller = random.choice(callers_filtered)
+                caller = random.choice(caller_Filtered)
         else:
             caller = None
 
@@ -799,20 +809,20 @@ def setup_caller(hi = False):
             caller[1][sound_file_key] = sound_list
 
         (caller_name, caller_name_with_version) = grab_caller_name(caller[0])  
-        caller_title = caller_name_with_version
-        caller_title_without_version = caller_name
+        caller_Title = caller_name_with_version
+        caller_Title_Without_Version = caller_name
 
         ppi("", None)
-        ppi("CURRENT VOICE-PACK: " + caller_title + " (" + str(len(caller[1].values())) + " Sound-file-keys)", None)
+        ppi("CURRENT VOICE-PACK: " + caller_Title + " (" + str(len(caller[1].values())) + " Sound-file-keys)", None)
         ppi("", None)
         # ppi(caller[1])
         caller = caller[1]
 
         welcome_event = {
             "event": "welcome",
-            "callersAvailable": callers_available,
-            "callersFavoured": caller_profiles_favoured,
-            "caller": caller_title_without_version
+            "callersAvailable": caller_Available,
+            "callersFavoured": caller_Profiles_Favoured,
+            "caller": caller_Title_Without_Version
         }
         broadcast(welcome_event)
 
@@ -838,10 +848,10 @@ def play_sound(sound, wait_for_last, volume_mult, mod):
         volume = AUDIO_CALLER_VOLUME * volume_mult
 
     global mirror_files
-    global caller_title_without_version
+    global caller_Title_Without_Version
     
     mirror_file = {
-                "caller": caller_title_without_version,
+                "caller": caller_Title_Without_Version,
                 "path": quote(sound, safe=""),
                 "wait": wait_for_last,
                 "volume": volume,
@@ -858,7 +868,7 @@ def play_sound(sound, wait_for_last, volume_mult, mod):
         s.set_volume(volume)
         s.play()
 
-    ppi('Play: "' + sound + '"')
+    ppi('\tPlay: "' + sound + '"')
 
 def play_sound_effect(sound_file_key, wait_for_last = False, volume_mult = 1.0, mod = True):
     try:
@@ -866,30 +876,12 @@ def play_sound_effect(sound_file_key, wait_for_last = False, volume_mult = 1.0, 
         play_sound(random.choice(caller[sound_file_key]), wait_for_last, volume_mult, mod)
         return True
     except Exception as e:
-        ppe('Can not play sound for sound-file-key "' + sound_file_key + '" -> Ignore this or check existance; otherwise convert your file appropriate', e)
+        #ppe('Can not play sound for sound-file-key "' + sound_file_key + '" -> Ignore this or check existance; otherwise convert your file appropriate', e)
         return False
     
 def mirror_sounds():
     global mirror_files
     if len(mirror_files) != 0: 
-        # Example
-        # {
-        #     "event": "mirror",
-        #     "files": [
-        #         {
-        #             "path": "C:\sounds\luca.mp3",
-        #             "wait": False,
-        #         },
-        #         {
-        #             "path": "C:\sounds\you_require.mp3",
-        #             "wait": True,
-        #         },
-        #         {
-        #             "path": "C:\sounds\40.mp3",
-        #             "wait": True,
-        #         }
-        #     ]
-        # }
         mirror = {
             "event": "mirror",
             "files": mirror_files
@@ -927,6 +919,12 @@ def calibrate_board():
         play_sound_effect('control', wait_for_last = False, volume_mult = 1.0)
     mirror_sounds()
 
+    b_Board_Calibrate = {
+        "event" : "board-calibrate"
+    }
+
+    broadcast(b_Board_Calibrate)
+
     try:
         res = requests.post(boardManagerAddress + '/api/config/calibration/auto')
         # ppi(res)
@@ -934,11 +932,11 @@ def calibrate_board():
         ppe('Calibrate board failed', e)
 
 
-def get_player_average(user_id, variant = 'x01', limit = '100'):
+def get_player_average(user_id, game_Variant = 'x01', limit = '100'):
     # get
     # https://api.autodarts.io/as/v0/users/<user-id>/stats/<variant>?limit=<limit>
     try:
-        res = requests.get(AUTODARTS_USERS_URL + user_id + "/stats/" + variant + "?limit=" + limit, headers={'Authorization': 'Bearer ' + kc.access_token})
+        res = requests.get(AUTODARTS_USERS_URL + user_id + "/stats/" + game_Variant + "?limit=" + limit, headers={'Authorization': 'Bearer ' + kc.access_token})
         m = res.json()
         # ppi(m)
         return m['average']['average']
@@ -954,8 +952,8 @@ def start_match(lobbyId):
     # post
     # https://api.autodarts.io/gs/v0/lobbies/<lobby-id>/start
     try:
-        global currentMatch
-        if currentMatch != None:
+        global current_Match
+        if current_Match != None:
             res = requests.post(AUTODARTS_LOBBIES_URL + lobbyId + "/start", headers={'Authorization': 'Bearer ' + kc.access_token})
             ppi(res)
 
@@ -970,9 +968,9 @@ def next_throw():
     # post
     # https://api.autodarts.io/gs/v0/matches/<match-id>/players/next
     try:
-        global currentMatch
-        if currentMatch != None:
-            requests.post(AUTODARTS_MATCHES_URL + currentMatch + "/players/next", headers={'Authorization': 'Bearer ' + kc.access_token})
+        global current_Match
+        if current_Match != None:
+            requests.post(AUTODARTS_MATCHES_URL + current_Match + "/players/next", headers={'Authorization': 'Bearer ' + kc.access_token})
 
     except Exception as e:
         ppe('Next throw failed', e)
@@ -985,17 +983,17 @@ def undo_throw():
     # post
     # https://api.autodarts.io/gs/v0/matches/<match-id>/undo
     try:
-        global currentMatch
-        if currentMatch != None:
-            requests.post(AUTODARTS_MATCHES_URL + currentMatch + "/undo", headers={'Authorization': 'Bearer ' + kc.access_token})
+        global current_Match
+        if current_Match != None:
+            requests.post(AUTODARTS_MATCHES_URL + current_Match + "/undo", headers={'Authorization': 'Bearer ' + kc.access_token})
     except Exception as e:
         ppe('Undo throw failed', e)
 
 def correct_throw(throw_indices, score):
-    global currentMatch
+    global current_Match
 
     score = FIELD_COORDS[score]
-    if currentMatch == None or len(throw_indices) > 3 or score == None:
+    if current_Match == None or len(throw_indices) > 3 or score == None:
         return
 
     cdcs_success = False
@@ -1036,7 +1034,7 @@ def correct_throw(throw_indices, score):
 
         # ppi(f'Data: {data}')
         if lastCorrectThrow == None or lastCorrectThrow != data:
-            requests.patch(AUTODARTS_MATCHES_URL + currentMatch + "/throws", json=data, headers={'Authorization': 'Bearer ' + kc.access_token})
+            requests.patch(AUTODARTS_MATCHES_URL + current_Match + "/throws", json=data, headers={'Authorization': 'Bearer ' + kc.access_token})
             lastCorrectThrow = data
         else:
             lastCorrectThrow = None 
@@ -1053,9 +1051,9 @@ def next_game():
     # post
     # https://api.autodarts.io/gs/v0/matches/<match-id>/games/next
     try:
-        global currentMatch
-        if currentMatch != None:
-            requests.post(AUTODARTS_MATCHES_URL + currentMatch + "/games/next", headers={'Authorization': 'Bearer ' + kc.access_token})
+        global current_Match
+        if current_Match != None:
+            requests.post(AUTODARTS_MATCHES_URL + current_Match + "/games/next", headers={'Authorization': 'Bearer ' + kc.access_token})
 
     except Exception as e:
         ppe('Next game failed', e)
@@ -1087,9 +1085,9 @@ def receive_local_board_address():
         ppe('Fetching local-board-address failed', e)
 
 def listen_to_match(m, ws):
-    global currentMatch
-    global currentMatchHost
-    global currentMatchPlayers
+    global current_Match
+    global current_Match_Host
+    global current_Match_Players
 
     # EXAMPLE
     # {
@@ -1105,8 +1103,8 @@ def listen_to_match(m, ws):
         return
 
     if m['event'] == 'start':
-        currentMatch = m['id']
-        ppi('Listen to match: ' + currentMatch)
+        current_Match = m['id']
+        ppi('Listen to match: ' + current_Match)
 
         reset_checkouts_counter()
 
@@ -1119,25 +1117,31 @@ def listen_to_match(m, ws):
         # get
         # https://api.autodarts.io/gs/v0/matches/<match-id>
         try:
-            res = requests.get(AUTODARTS_MATCHES_URL + currentMatch, headers={'Authorization': 'Bearer ' + kc.access_token})
+            res = requests.get(AUTODARTS_MATCHES_URL + current_Match, headers={'Authorization': 'Bearer ' + kc.access_token})
             m = res.json()
-            # ppi(json.dumps(m, indent = 4, sort_keys = True))
+            ppf(json.dumps(m, indent = 4, sort_keys = True))
 
-            currentPlayerName = None
+            current_Player_Name = None
             players = []
 
             if 'players' in m:
-                currentPlayer = m['players'][0]
-                currentPlayerName = str(currentPlayer['name']).lower()
+                current_Player = m['players'][0]
+                current_Player_Name = str(current_Player['name']).lower()
                 players = m['players']
 
             if 'variant' not in m:
                 return
             
-            mode = m['variant']
+            game_Mode = getattr(m, 'variant', None)
+            game_Variant = getattr(m, 'settings', None)
+
+            ppi("game_Mode ", game_Mode)
+            ppi("game_Variant ", game_Variant)
+            #if hasattr(m, 'gameMode'):
+            #    game_Mode = m['settings']['gameMode']
 
 
-            if mode == 'Bull-off':
+            if game_Variant== 'Bull-off':
                 bullingStart = {
                     "event": "bulling-start"
                 }
@@ -1147,17 +1151,17 @@ def listen_to_match(m, ws):
 
 
 
-            if mode == 'X01':
-                currentMatchPlayers = []
-                currentMatchHost = None
+            if game_Variant== 'X01':
+                current_Match_Players = []
+                current_Match_Host = None
 
                 if players != []:
                     for p in players:
                         if 'boardId' in p:
-                            if currentMatchHost is None and m['host']['id'] == p['userId'] and p['boardId'] == AUTODART_USER_BOARD_ID:
-                                currentMatchHost = True
+                            if current_Match_Host is None and m['host']['id'] == p['userId'] and p['boardId'] == AUTODART_USER_BOARD_ID:
+                                current_Match_Host = True
                             else: 
-                                currentMatchPlayers.append(p)
+                                current_Match_Players.append(p)
 
                 # Determine "baseScore"-Key
                 base = 'baseScore'
@@ -1166,36 +1170,77 @@ def listen_to_match(m, ws):
 
                 matchStarted = {
                     "event": "match-started",
-                    "id": currentMatch,
+                    "id": current_Match,
                     "me": AUTODART_USER_BOARD_ID,
-                    "meHost": currentMatchHost,
-                    "players": currentMatchPlayers,
-                    "player": currentPlayerName,
+                    "meHost": current_Match_Host,
+                    "players": current_Match_Players,
+                    "player": current_Player_Name,
                     "game": {
-                        "mode": mode,
+                        "mode": game_Mode,
                         "pointsStart": str(m['settings'][base]),
                         # TODO: fix
                         "special": "TODO"
                         }     
                     }
                 broadcast(matchStarted)
+                
+                
+            if game_Variant== 'Gotcha':
+                current_Match_Players = []
+                current_Match_Host = None
 
-            elif mode == 'Cricket':
+                if players != []:
+                    for p in players:
+                        if 'boardId' in p:
+                            if current_Match_Host is None and m['host']['id'] == p['userId'] and p['boardId'] == AUTODART_USER_BOARD_ID:
+                                current_Match_Host = True
+                            else: 
+                                current_Match_Players.append(p)
+
+                # Determine "targetScore"-Key
+                target = 'targetScore'
+                if 'targetScore' in m['settings']:
+                    target = 'targetScore'
+
                 matchStarted = {
                     "event": "match-started",
-                    "player": currentPlayerName,
+                    "id": current_Match,
+                    "me": AUTODART_USER_BOARD_ID,
+                    "meHost": current_Match_Host,
+                    "players": current_Match_Players,
+                    "player": current_Player_Name,
                     "game": {
-                        "mode": mode,
+                        "mode": game_Mode,
+                        "pointsTarget": str(m['settings'][target]),
                         # TODO: fix
                         "special": "TODO"
                         }     
                     }
                 broadcast(matchStarted)
 
-            if mode != 'Bull-off':
+            elif game_Variant== 'Cricket':
+                # Check, if GameMode "Tactics" is active
+                if 'gameMode' in m['settings']:
+                    game_Mode = m['settings']['gameMode']
+                else:
+                    game_Mode =""
+
+                matchStarted = {
+                    "event": "match-started",
+                    "player": current_Player_Name,
+                    "game": {
+                        "game_Variant": game_Variant,
+                        "game_Mode" : game_Mode,
+                        # TODO: fix
+                        "special": "TODO"
+                        }     
+                    }
+                broadcast(matchStarted)
+
+            if game_Variant!= 'Bull-off':
                 callPlayerNameState = False
-                if CALL_CURRENT_PLAYER >= 1 and currentPlayerName != None:
-                    callPlayerNameState = play_sound_effect(currentPlayerName)
+                if CALL_CURRENT_PLAYER >= 1 and current_Player_Name != None:
+                    callPlayerNameState = play_sound_effect(current_Player_Name)
 
                 if play_sound_effect('matchon', callPlayerNameState) == False:
                     play_sound_effect('gameon', callPlayerNameState)
@@ -1209,15 +1254,15 @@ def listen_to_match(m, ws):
         except Exception as e:
             ppe('Fetching initial match-data failed', e)
 
-        global isGameFinished
-        isGameFinished = False
+        global game_IsFinished
+        game_IsFinished = False
 
         receive_local_board_address()
 
         paramsSubscribeMatchesEvents = {
             "channel": "autodarts.matches",
             "type": "subscribe",
-            "topic": currentMatch + ".state"
+            "topic": current_Match + ".state"
         }
 
         ws.send(json.dumps(paramsSubscribeMatchesEvents))
@@ -1225,7 +1270,7 @@ def listen_to_match(m, ws):
         # paramsSubscribeMatchesEvents = {
         #     "channel": "autodarts.matches",
         #     "type": "subscribe",
-        #     "topic": currentMatch + ".game-events"
+        #     "topic": current_Match + ".game-events"
         # }
         # ws.send(json.dumps(paramsSubscribeMatchesEvents))
 
@@ -1233,9 +1278,9 @@ def listen_to_match(m, ws):
     elif m['event'] == 'finish' or m['event'] == 'delete':
         ppi('Stop listening to match: ' + m['id'])
 
-        currentMatch = None
-        currentMatchHost = None
-        currentMatchPlayers = []
+        current_Match = None
+        current_Match_Host = None
+        current_Match_Players = []
 
         paramsUnsubscribeMatchEvents = {  
             "channel": "autodarts.matches",
@@ -1275,35 +1320,35 @@ def increase_checkout_counter(player_index, remaining_score):
 
     return checkoutsCounter[player_index]['checkout_count'] <= POSSIBLE_CHECKOUT_CALL
 
-def checkout_only_yourself(currentPlayer):
+def checkout_only_yourself(current_Player):
     if POSSIBLE_CHECKOUT_CALL_YOURSELF_ONLY:
-        if 'boardId' in currentPlayer and currentPlayer['boardId'] == AUTODART_USER_BOARD_ID:
+        if 'boardId' in current_Player and current_Player['boardId'] == AUTODART_USER_BOARD_ID:
             return True
         else:
             return False
     return True
 
 def process_match_x01(m):
-    global currentMatch
-    global currentMatchHost
-    global currentMatchPlayers
-    global isGameFinished
-    global lastPoints
+    global current_Match
+    global current_Match_Host
+    global current_Match_Players
+    global game_IsFinished
+    global points_Last
     
-    variant = m['variant']
+    game_Variant = m['variant']
     players = m['players']
-    currentPlayerIndex = m['player']
-    currentPlayer = m['players'][currentPlayerIndex]
-    currentPlayerName = str(currentPlayer['name']).lower()
-    currentPlayerIsBot = (m['players'][currentPlayerIndex]['cpuPPR'] is not None)
-    remainingPlayerScore = m['gameScores'][currentPlayerIndex]
+    current_Player_Index = m['player']
+    current_Player = m['players'][current_Player_Index]
+    current_Player_Name = str(current_Player['name']).lower()
+    current_Player_IsBot = (m['players'][current_Player_Index]['cpuPPR'] is not None)
+    remainingPlayerScore = m['gameScores'][current_Player_Index]
     numberOfPlayers = len(m['players'])
 
     turns = m['turns'][0]
     points = str(turns['points'])
     busted = (turns['busted'] == True)
-    matchshot = (m['winner'] != -1 and isGameFinished == False)
-    gameshot = (m['gameWinner'] != -1 and isGameFinished == False)
+    matchshot = (m['winner'] != -1 and game_IsFinished == False)
+    gameshot = (m['gameWinner'] != -1 and game_IsFinished == False)
     
     # Determine "baseScore"-Key
     base = 'baseScore'
@@ -1318,25 +1363,25 @@ def process_match_x01(m):
     isGameFin = False
 
     if turns != None and turns['throws'] != []:
-        lastPoints = points
+        points_Last = points
 
     # Darts pulled (Playerchange and Possible-checkout)
-    if gameon == False and turns != None and turns['throws'] == [] or isGameFinished == True:
+    if gameon == False and turns != None and turns['throws'] == [] or game_IsFinished == True:
         busted = "False"
-        if lastPoints == "B":
-            lastPoints = "0"
+        if points_Last == "B":
+            points_Last = "0"
             busted = "True"
 
         dartsPulled = {
             "event": "darts-pulled",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 # TODO: fix
                 "pointsLeft": str(remainingPlayerScore),
                 # TODO: fix
-                "dartsThrown": "3",
-                "dartsThrownValue": lastPoints,
+                "darts_Thrown": "3",
+                "darts_ThrownValue": points_Last,
                 "busted": busted
                 # TODO: fix
                 # "darts": [
@@ -1351,24 +1396,24 @@ def process_match_x01(m):
         broadcast(dartsPulled)
 
         
-        if gameon == False and isGameFinished == False:
+        if gameon == False and game_IsFinished == False:
 
-            if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+            if current_Player_IsBot == False or CALL_BOT_ACTIONS:
 
                 # Check for possible checkout
                 if POSSIBLE_CHECKOUT_CALL and \
-                        m['player'] == currentPlayerIndex and \
+                        m['player'] == current_Player_Index and \
                         remainingPlayerScore <= 170 and \
-                        checkout_only_yourself(currentPlayer):
+                        checkout_only_yourself(current_Player):
                     
-                    if not increase_checkout_counter(currentPlayerIndex, remainingPlayerScore):
+                    if not increase_checkout_counter(current_Player_Index, remainingPlayerScore):
                         if AMBIENT_SOUNDS != 0.0:
                             play_sound_effect('ambient_checkout_call_limit', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
                     else:
                         remaining = str(remainingPlayerScore)
                         if remainingPlayerScore not in BOGEY_NUMBERS:
                             if CALL_CURRENT_PLAYER >= 1:
-                                play_sound_effect(currentPlayerName)
+                                play_sound_effect(current_Player_Name)
 
                             pcc_success = play_sound_effect('you_require', True)
                             if pcc_success:
@@ -1385,11 +1430,11 @@ def process_match_x01(m):
                             ppi('bogey-number: ' + remaining)
 
                 if pcc_success == False and CALL_CURRENT_PLAYER == 2 and numberOfPlayers > 1:
-                    play_sound_effect(currentPlayerName)
+                    play_sound_effect(current_Player_Name)
 
             # Player-change
             if pcc_success == False and AMBIENT_SOUNDS != 0.0:
-                if play_sound_effect('ambient_playerchange_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                if play_sound_effect('ambient_playerchange_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                     play_sound_effect('ambient_playerchange', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
                 
 
@@ -1398,62 +1443,62 @@ def process_match_x01(m):
     # Call every thrown dart
     elif CALL_EVERY_DART > 0 and turns != None and turns['throws'] != [] and len(turns['throws']) >= 1 and busted == False and matchshot == False and gameshot == False: 
         
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
-            throwAmount = len(turns['throws'])
-            type = turns['throws'][throwAmount - 1]['segment']['bed'].lower()
-            field_name = turns['throws'][throwAmount - 1]['segment']['name'].lower()
-            field_multiplier = turns['throws'][throwAmount - 1]['segment']['multiplier']
-            field_number = turns['throws'][throwAmount - 1]['segment']['number']
-            # ppi("Type: " + str(type) + " - Field-name: " + str(field_name))
-            # ppi(turns['throws'][throwAmount - 1]['segment'])
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
+            throw_Amount = len(turns['throws'])
+            field_Type = turns['throws'][throw_Amount - 1]['segment']['bed'].lower()
+            field_Name = turns['throws'][throw_Amount - 1]['segment']['name'].lower()
+            field_Multiplier = turns['throws'][throw_Amount - 1]['segment']['multiplier']
+            field_Number = turns['throws'][throw_Amount - 1]['segment']['number']
+            # ppi("field_Type: " + str(field_Type) + " - Field-name: " + str(field_Name))
+            # ppi(turns['throws'][throw_Amount - 1]['segment'])
                 
 
             # SINGLE-DART-SCORE
             if CALL_EVERY_DART == 1:
-                score = field_number * field_multiplier
+                score = field_Number * field_Multiplier
                 play_sound_effect(str(score))
 
             # SINGLE-DART-NAME
             elif CALL_EVERY_DART == 2:
-                if field_number == 25 and field_multiplier == 1:
-                    field_name = 'bull'
-                elif field_number == 25 and field_multiplier == 2:
-                    field_name = 'bullseye'
+                if field_Number == 25 and field_Multiplier == 1:
+                    field_Name = 'bull'
+                elif field_Number == 25 and field_Multiplier == 2:
+                    field_Name = 'bullseye'
 
                 # bull
                 # bullseye 
                 # s1 to t20
                 # m1 to m20
-                if play_sound_effect(field_name) == False:
-                    field_number = str(field_number)
+                if play_sound_effect(field_Name) == False:
+                    field_Number = str(field_Number)
 
-                    if type == 'singleouter' or type == 'singleinner':
-                        play_sound_effect(field_number)
-                    elif type == 'outside':
-                        play_sound_effect(type)
+                    if field_Type == 'singleouter' or field_Type == 'singleinner':
+                        play_sound_effect(field_Number)
+                    elif field_Type == 'outside':
+                        play_sound_effect(field_Type)
                     else:
-                        if play_sound_effect(type):
-                            play_sound_effect(field_number, wait_for_last=True)
+                        if play_sound_effect(field_Type):
+                            play_sound_effect(field_Number, wait_for_last=True)
 
             # SINGLE-DART-EFFECT
             elif CALL_EVERY_DART == 3:
-                if field_number == 25 and field_multiplier == 1:
-                    field_name = 'bull'
-                elif field_number == 25 and field_multiplier == 2:
-                    field_name = 'bullseye'
+                if field_Number == 25 and field_Multiplier == 1:
+                    field_Name = 'bull'
+                elif field_Number == 25 and field_Multiplier == 2:
+                    field_Name = 'bullseye'
 
                 # effect_bull
                 # effect_bullseye 
                 # effect_s1 to effect_t20
                 # effect_m1 to effect_m20
-                if play_sound_effect('effect_' + field_name, mod = False) == False:
+                if play_sound_effect('effect_' + field_Name, mod = False) == False:
 
                     # effect_single
                     # effect_singleouter
                     # effect_singleinner
                     inner_outer = False
-                    if type == 'singleouter' or type == 'singleinner':
-                        inner_outer = play_sound_effect('effect_' + type, mod = False)
+                    if field_Type == 'singleouter' or field_Type == 'singleinner':
+                        inner_outer = play_sound_effect('effect_' + field_Type, mod = False)
                         if inner_outer == False:
                             play_sound_effect('effect_single', mod = False)
 
@@ -1461,7 +1506,7 @@ def process_match_x01(m):
                     # effect_triple 
                     # effect_outside
                     else:
-                        play_sound_effect('effect_' + type, mod = False)
+                        play_sound_effect('effect_' + field_Type, mod = False)
             
         
     # Check for matchshot
@@ -1470,10 +1515,10 @@ def process_match_x01(m):
         
         matchWon = {
                 "event": "match-won",
-                "player": currentPlayerName,
+                "player": current_Player_Name,
                 "game": {
-                    "mode": variant,
-                    "dartsThrownValue": points
+                    "game_Variant": game_Variant,
+                    "darts_ThrownValue": points
                 } 
             }
         broadcast(matchWon)
@@ -1482,14 +1527,14 @@ def process_match_x01(m):
             play_sound_effect('gameshot')
 
         if CALL_CURRENT_PLAYER >= 1:
-            play_sound_effect(currentPlayerName, True)
+            play_sound_effect(current_Player_Name, True)
 
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_matchshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+            if play_sound_effect('ambient_matchshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
             elif play_sound_effect('ambient_matchshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
-            elif play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+            elif play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
             else:
                 play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
@@ -1505,18 +1550,18 @@ def process_match_x01(m):
         
         gameWon = {
                 "event": "game-won",
-                "player": currentPlayerName,
+                "player": current_Player_Name,
                 "game": {
-                    "mode": variant,
-                    "dartsThrownValue": points
+                    "game_Variant": game_Variant,
+                    "darts_ThrownValue": points
                 } 
             }
         broadcast(gameWon)
 
         gameshotState = play_sound_effect('gameshot')
 
-        currentPlayerScoreLegs = m['scores'][currentPlayerIndex]['legs']
-        # currentPlayerScoreSets = m['scores'][currentPlayerIndex]['sets']
+        currentPlayerScoreLegs = m['scores'][current_Player_Index]['legs']
+        # currentPlayerScoreSets = m['scores'][current_Player_Index]['sets']
         currentLeg = m['leg']
         currentSet = m['set']
         # maxLeg = m['legs']
@@ -1536,21 +1581,21 @@ def process_match_x01(m):
                 play_sound_effect('leg_' + str(currentLeg), gameshotState)    
 
         if CALL_CURRENT_PLAYER >= 1:
-            play_sound_effect(currentPlayerName, True)
+            play_sound_effect(current_Player_Name, True)
 
         if AMBIENT_SOUNDS != 0.0:
             if isSet == True:
-                if play_sound_effect('ambient_setshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                if play_sound_effect('ambient_setshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                     pass
                 elif play_sound_effect('ambient_setshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                     pass
-                elif play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                elif play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                     pass
                 else:
                     play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
                     
             else:
-                if play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                if play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                     pass
                 else:
                     play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
@@ -1561,29 +1606,29 @@ def process_match_x01(m):
 
     # Check for matchon
     elif matchon == True:
-        isGameFinished = False
+        game_IsFinished = False
 
         reset_checkouts_counter()
 
-        currentMatchPlayers = []
-        currentMatchHost = None
+        current_Match_Players = []
+        current_Match_Host = None
         if players != []:
             for p in players:
                 if 'boardId' in p:
-                    if currentMatchHost is None and m['host']['id'] == p['userId'] and p['boardId'] == AUTODART_USER_BOARD_ID:
-                        currentMatchHost = True
+                    if current_Match_Host is None and m['host']['id'] == p['userId'] and p['boardId'] == AUTODART_USER_BOARD_ID:
+                        current_Match_Host = True
                     else:
-                        currentMatchPlayers.append(p)
+                        current_Match_Players.append(p)
 
         matchStarted = {
             "event": "match-started",
-            "id": currentMatch,
+            "id": current_Match,
             "me": AUTODART_USER_BOARD_ID,
-            # "meHost": currentMatchHost,
-            # "players": currentMatchPlayers,
-            "player": currentPlayerName,
+            # "meHost": current_Match_Host,
+            # "players": current_Match_Players,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 "pointsStart": str(m['settings'][base]),
                 # TODO: fix
                 "special": "TODO"
@@ -1593,15 +1638,15 @@ def process_match_x01(m):
 
         callPlayerNameState = False
         if CALL_CURRENT_PLAYER >= 1:
-            callPlayerNameState = play_sound_effect(currentPlayerName)
+            callPlayerNameState = play_sound_effect(current_Player_Name)
 
         if play_sound_effect('matchon', callPlayerNameState, mod = False) == False:
             play_sound_effect('gameon', callPlayerNameState, mod = False)
 
         if AMBIENT_SOUNDS != 0.0:
-            state = play_sound_effect('ambient_matchon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+            state = play_sound_effect('ambient_matchon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
             if state == False and play_sound_effect('ambient_matchon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
-                if play_sound_effect('ambient_gameon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                if play_sound_effect('ambient_gameon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                     play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
 
 
@@ -1609,15 +1654,15 @@ def process_match_x01(m):
 
     # Check for gameon
     elif gameon == True:
-        isGameFinished = False
+        game_IsFinished = False
 
         reset_checkouts_counter()
 
         gameStarted = {
             "event": "game-started",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 "pointsStart": str(m['settings'][base]),
                 # TODO: fix
                 "special": "TODO"
@@ -1627,32 +1672,32 @@ def process_match_x01(m):
 
         callPlayerNameState = False
         if CALL_CURRENT_PLAYER >= 1:
-            callPlayerNameState = play_sound_effect(currentPlayerName)
+            callPlayerNameState = play_sound_effect(current_Player_Name)
 
         play_sound_effect('gameon', callPlayerNameState, mod = False)
 
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_gameon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+            if play_sound_effect('ambient_gameon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                 play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
 
         ppi('Gameon')
           
     # Check for busted turn
     elif busted == True:
-        lastPoints = "B"
-        isGameFinished = False
+        points_Last = "B"
+        game_IsFinished = False
 
         busted = { 
                     "event": "busted",
-                    "player": currentPlayerName,
-                    "playerIsBot": str(currentPlayerIsBot),
+                    "player": current_Player_Name,
+                    "playerIsBot": str(current_Player_IsBot),
                     "game": {
-                        "mode": variant
+                        "mode": game_Variant
                     }       
                 }
         broadcast(busted)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             play_sound_effect('busted', mod = False)
 
             if AMBIENT_SOUNDS != 0.0:
@@ -1662,30 +1707,30 @@ def process_match_x01(m):
     
     # Check for 1. Dart
     elif turns != None and turns['throws'] != [] and len(turns['throws']) == 1:
-        isGameFinished = False
+        game_IsFinished = False
 
     # Check for 2. Dart
     elif turns != None and turns['throws'] != [] and len(turns['throws']) == 2:
-        isGameFinished = False
+        game_IsFinished = False
 
     # Check for 3. Dart - Score-call
     elif turns != None and turns['throws'] != [] and len(turns['throws']) == 3:
-        isGameFinished = False
+        game_IsFinished = False
 
-        dartsThrown = {
+        darts_Thrown = {
             "event": "darts-thrown",
-            "player": currentPlayerName,
-            "playerIsBot": str(currentPlayerIsBot),
+            "player": current_Player_Name,
+            "playerIsBot": str(current_Player_IsBot),
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 "pointsLeft": str(remainingPlayerScore),
                 "dartNumber": "3",
                 "dartValue": points,        
             }
         }
-        broadcast(dartsThrown)
+        broadcast(darts_Thrown)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             if CALL_EVERY_DART == 0 or CALL_EVERY_DART_TOTAL_SCORE == True:
                 play_sound_effect(points, wait_for_last=CALL_EVERY_DART > 0)
 
@@ -1778,128 +1823,767 @@ def process_match_x01(m):
     mirror_sounds()
 
     if isGameFin == True:
-        isGameFinished = True
+        game_IsFinished = True
+
+def process_match_gotcha(m):
+    #ppf(json.dumps(m, indent = 4, sort_keys = True))
+    global current_Match
+    global current_Match_Host
+    global current_Match_Players
+    global game_IsFinished
+    global points_Last
+    
+    game_Variant = m['variant']
+    players = m['players']
+    current_Player_Index = m['player']
+    current_Player = m['players'][current_Player_Index]
+    current_Player_Name = str(current_Player['name']).lower()
+    current_Player_IsBot = (m['players'][current_Player_Index]['cpuPPR'] is not None)
+    remainingPlayerScore = m['gameScores'][current_Player_Index]
+    numberOfPlayers = len(m['players'])
+
+    turns = m['turns'][0]
+    points = str(turns['points'])
+    busted = (turns['busted'] == True)
+    matchshot = (m['winner'] != -1 and game_IsFinished == False)
+    gameshot = (m['gameWinner'] != -1 and game_IsFinished == False)
+    
+    # Determine "targetScore"-Key
+    target = 'targetScore'
+    if 'targetScore' in m['settings']:
+        target = 'targetScore'
+    
+    matchon = (m['settings'][target] == m['gameScores'][0] and turns['throws'] == [] and m['leg'] == 1 and m['set'] == 1)
+    gameon = (m['settings'][target] == m['gameScores'][0] and turns['throws'] == [])
+
+
+    pcc_success = False
+    isGameFin = False
+
+    if turns != None and turns['throws'] != []:
+        points_Last = points
+
+    # Darts pulled (Playerchange and Possible-checkout)
+    if gameon == False and turns != None and turns['throws'] == [] or game_IsFinished == True:
+        busted = "False"
+        if points_Last == "B":
+            points_Last = "0"
+            busted = "True"
+
+        dartsPulled = {
+            "event": "darts-pulled",
+            "player": current_Player_Name,
+            "game": {
+                "game_Variant": game_Variant,
+                # TODO: fix
+                "pointsLeft": str(remainingPlayerScore),
+                # TODO: fix
+                "darts_Thrown": "3",
+                "darts_ThrownValue": points_Last,
+                "busted": busted
+                # TODO: fix
+                # "darts": [
+                #     {"number": "1", "value": "60"},
+                #     {"number": "2", "value": "60"},
+            
+                #     {"number": "3", "value": "60"}
+                # ]
+            }
+        }
+        # ppi(dartsPulled)
+        broadcast(dartsPulled)
+
+        
+        if gameon == False and game_IsFinished == False:
+
+            if current_Player_IsBot == False or CALL_BOT_ACTIONS:
+
+                # Check for possible checkout
+                if POSSIBLE_CHECKOUT_CALL and \
+                        m['player'] == current_Player_Index and \
+                        remainingPlayerScore >= 131 and \
+                        checkout_only_yourself(current_Player):
+                    
+                    if not increase_checkout_counter(current_Player_Index, remainingPlayerScore):
+                        if AMBIENT_SOUNDS != 0.0:
+                            play_sound_effect('ambient_checkout_call_limit', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    else:
+                        remaining = str(remainingPlayerScore)
+                        if remainingPlayerScore not in BOGEY_NUMBERS:
+                            if CALL_CURRENT_PLAYER >= 1:
+                                play_sound_effect(current_Player_Name)
+
+                            pcc_success = play_sound_effect('you_require', True)
+                            if pcc_success:
+                                if play_sound_effect('c_' + remaining, True) == False:
+                                    play_sound_effect(remaining, True)
+                            else:
+                                pcc_success = play_sound_effect('yr_' + remaining, True)
+                            
+                            ppi('Checkout possible: ' + remaining)
+                        else:
+                            if AMBIENT_SOUNDS != 0.0:
+                                if play_sound_effect('ambient_bogey_number_' + remaining, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                                    play_sound_effect('ambient_bogey_number', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                            ppi('bogey-number: ' + remaining)
+
+                if pcc_success == False and CALL_CURRENT_PLAYER == 2 and numberOfPlayers > 1:
+                    play_sound_effect(current_Player_Name)
+
+            # Player-change
+            if pcc_success == False and AMBIENT_SOUNDS != 0.0:
+                if play_sound_effect('ambient_playerchange_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                    play_sound_effect('ambient_playerchange', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                
+
+            ppi("Next player")
+
+    # Call every thrown dart
+    elif CALL_EVERY_DART > 0 and turns != None and turns['throws'] != [] and len(turns['throws']) >= 1 and busted == False and matchshot == False and gameshot == False: 
+        
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
+            throw_Amount = len(turns['throws'])
+            field_Type = turns['throws'][throw_Amount - 1]['segment']['bed'].lower()
+            field_Name = turns['throws'][throw_Amount - 1]['segment']['name'].lower()
+            field_Multiplier = turns['throws'][throw_Amount - 1]['segment']['multiplier']
+            field_Number = turns['throws'][throw_Amount - 1]['segment']['number']
+            # ppi("field_Type: " + str(field_Type) + " - Field-name: " + str(field_Name))
+            # ppi(turns['throws'][throw_Amount - 1]['segment'])
+                
+
+            # SINGLE-DART-SCORE
+            if CALL_EVERY_DART == 1:
+                score = field_Number * field_Multiplier
+                play_sound_effect(str(score))
+
+            # SINGLE-DART-NAME
+            elif CALL_EVERY_DART == 2:
+                if field_Number == 25 and field_Multiplier == 1:
+                    field_Name = 'bull'
+                elif field_Number == 25 and field_Multiplier == 2:
+                    field_Name = 'bullseye'
+
+                # bull
+                # bullseye 
+                # s1 to t20
+                # m1 to m20
+                if play_sound_effect(field_Name) == False:
+                    field_Number = str(field_Number)
+
+                    if field_Type == 'singleouter' or field_Type == 'singleinner':
+                        play_sound_effect(field_Number)
+                    elif field_Type == 'outside':
+                        play_sound_effect(field_Type)
+                    else:
+                        if play_sound_effect(field_Type):
+                            play_sound_effect(field_Number, wait_for_last=True)
+
+            # SINGLE-DART-EFFECT
+            elif CALL_EVERY_DART == 3:
+                if field_Number == 25 and field_Multiplier == 1:
+                    field_Name = 'bull'
+                elif field_Number == 25 and field_Multiplier == 2:
+                    field_Name = 'bullseye'
+
+                # effect_bull
+                # effect_bullseye 
+                # effect_s1 to effect_t20
+                # effect_m1 to effect_m20
+                if play_sound_effect('effect_' + field_Name, mod = False) == False:
+
+                    # effect_single
+                    # effect_singleouter
+                    # effect_singleinner
+                    inner_outer = False
+                    if field_Type == 'singleouter' or field_Type == 'singleinner':
+                        inner_outer = play_sound_effect('effect_' + field_Type, mod = False)
+                        if inner_outer == False:
+                            play_sound_effect('effect_single', mod = False)
+
+                    # effect_double
+                    # effect_triple 
+                    # effect_outside
+                    else:
+                        play_sound_effect('effect_' + field_Type, mod = False)
+            
+        
+    # Check for matchshot
+    if matchshot == True:
+        isGameFin = True
+        
+        matchWon = {
+                "event": "match-won",
+                "player": current_Player_Name,
+                "game": {
+                    "game_Variant": game_Variant,
+                    "darts_ThrownValue": points
+                } 
+            }
+        broadcast(matchWon)
+
+        if play_sound_effect('matchshot') == False:
+            play_sound_effect('gameshot')
+
+        if CALL_CURRENT_PLAYER >= 1:
+            play_sound_effect(current_Player_Name, True)
+
+        if AMBIENT_SOUNDS != 0.0:
+            if play_sound_effect('ambient_matchshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                pass
+            elif play_sound_effect('ambient_matchshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                pass
+            elif play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                pass
+            else:
+                play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+            
+
+        if RANDOM_CALLER == 2:
+            setup_caller()
+        ppi('Gameshot and match')
+
+    # Check for gameshot
+    elif gameshot == True:
+        isGameFin = True
+        
+        gameWon = {
+                "event": "game-won",
+                "player": current_Player_Name,
+                "game": {
+                    "game_Variant": game_Variant,
+                    "darts_ThrownValue": points
+                } 
+            }
+        broadcast(gameWon)
+
+        gameshotState = play_sound_effect('gameshot')
+
+        currentPlayerScoreLegs = m['scores'][current_Player_Index]['legs']
+        # currentPlayerScoreSets = m['scores'][current_Player_Index]['sets']
+        currentLeg = m['leg']
+        currentSet = m['set']
+        # maxLeg = m['legs']
+        # maxSets = m['sets']
+
+        # ppi('currentLeg: ' + str(currentLeg))
+        # ppi('currentSet: ' + str(currentSet))
+
+        isSet = False
+        if 'sets' not in m:
+            play_sound_effect('leg_' + str(currentLeg), gameshotState)
+        else:
+            if currentPlayerScoreLegs == 0:
+                play_sound_effect('set_' + str(currentSet), gameshotState)
+                isSet = True
+            else:
+                play_sound_effect('leg_' + str(currentLeg), gameshotState)    
+
+        if CALL_CURRENT_PLAYER >= 1:
+            play_sound_effect(current_Player_Name, True)
+
+        if AMBIENT_SOUNDS != 0.0:
+            if isSet == True:
+                if play_sound_effect('ambient_setshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                    pass
+                elif play_sound_effect('ambient_setshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                    pass
+                elif play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                    pass
+                else:
+                    play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    
+            else:
+                if play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+                    pass
+                else:
+                    play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+
+        if RANDOM_CALLER == 2:
+            setup_caller()
+        ppi('Gameshot')
+
+    # Check for matchon
+    elif matchon == True:
+        game_IsFinished = False
+
+        reset_checkouts_counter()
+
+        current_Match_Players = []
+        current_Match_Host = None
+        if players != []:
+            for p in players:
+                if 'boardId' in p:
+                    if current_Match_Host is None and m['host']['id'] == p['userId'] and p['boardId'] == AUTODART_USER_BOARD_ID:
+                        current_Match_Host = True
+                    else:
+                        current_Match_Players.append(p)
+
+        matchStarted = {
+            "event": "match-started",
+            "id": current_Match,
+            "me": AUTODART_USER_BOARD_ID,
+            # "meHost": current_Match_Host,
+            # "players": current_Match_Players,
+            "player": current_Player_Name,
+            "game": {
+                "game_Variant": game_Variant,
+                "pointsStart": str(m['settings'][target]),
+                # TODO: fix
+                "special": "TODO"
+                }     
+            }
+        broadcast(matchStarted)
+
+        callPlayerNameState = False
+        if CALL_CURRENT_PLAYER >= 1:
+            callPlayerNameState = play_sound_effect(current_Player_Name)
+
+        if play_sound_effect('matchon', callPlayerNameState, mod = False) == False:
+            play_sound_effect('gameon', callPlayerNameState, mod = False)
+
+        if AMBIENT_SOUNDS != 0.0:
+            state = play_sound_effect('ambient_matchon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+            if state == False and play_sound_effect('ambient_matchon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                if play_sound_effect('ambient_gameon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                    play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+
+
+        ppi('Matchon')
+
+    # Check for gameon
+    elif gameon == True:
+        game_IsFinished = False
+
+        reset_checkouts_counter()
+
+        gameStarted = {
+            "event": "game-started",
+            "player": current_Player_Name,
+            "game": {
+                "game_Variant": game_Variant,
+                "pointsStart": str(m['settings'][target]),
+                # TODO: fix
+                "special": "TODO"
+                }     
+            }
+        broadcast(gameStarted)
+
+        callPlayerNameState = False
+        if CALL_CURRENT_PLAYER >= 1:
+            callPlayerNameState = play_sound_effect(current_Player_Name)
+
+        play_sound_effect('gameon', callPlayerNameState, mod = False)
+
+        if AMBIENT_SOUNDS != 0.0:
+            if play_sound_effect('ambient_gameon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+
+        ppi('Gameon')
+          
+    # Check for busted turn
+    elif busted == True:
+        points_Last = "B"
+        game_IsFinished = False
+
+        busted = { 
+                    "event": "busted",
+                    "player": current_Player_Name,
+                    "playerIsBot": str(current_Player_IsBot),
+                    "game": {
+                        "mode": game_Variant
+                    }       
+                }
+        broadcast(busted)
+
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
+            play_sound_effect('busted', mod = False)
+
+            if AMBIENT_SOUNDS != 0.0:
+                play_sound_effect('ambient_noscore', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+
+        ppi('Busted')
+    
+    # Check for 1. Dart
+    elif turns != None and turns['throws'] != [] and len(turns['throws']) == 1:
+        game_IsFinished = False
+
+    # Check for 2. Dart
+    elif turns != None and turns['throws'] != [] and len(turns['throws']) == 2:
+        game_IsFinished = False
+
+    # Check for 3. Dart - Score-call
+    elif turns != None and turns['throws'] != [] and len(turns['throws']) == 3:
+        game_IsFinished = False
+
+        darts_Thrown = {
+            "event": "darts-thrown",
+            "player": current_Player_Name,
+            "playerIsBot": str(current_Player_IsBot),
+            "game": {
+                "game_Variant": game_Variant,
+                "pointsLeft": str(remainingPlayerScore),
+                "dartNumber": "3",
+                "dartValue": points,        
+            }
+        }
+        broadcast(darts_Thrown)
+
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
+            if CALL_EVERY_DART == 0 or CALL_EVERY_DART_TOTAL_SCORE == True:
+                play_sound_effect(points, wait_for_last=CALL_EVERY_DART > 0)
+
+            if AMBIENT_SOUNDS != 0.0:
+                ambient_x_success = False
+
+                throw_combo = ''
+                for t in turns['throws']:
+                    throw_combo += t['segment']['name'].lower()
+                # ppi(throw_combo)
+
+                if turns['points'] != 0:
+                    ambient_x_success = play_sound_effect('ambient_' + str(throw_combo), AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    if ambient_x_success == False:
+                        ambient_x_success = play_sound_effect('ambient_' + str(turns['points']), AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+
+                if ambient_x_success == False:
+                    if turns['points'] >= 150:
+                        play_sound_effect('ambient_150more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)   
+                    elif turns['points'] >= 120:
+                        play_sound_effect('ambient_120more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    elif turns['points'] >= 100:
+                        play_sound_effect('ambient_100more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    elif turns['points'] >= 50:
+                        play_sound_effect('ambient_50more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    elif turns['points'] >= 1:
+                        play_sound_effect('ambient_1more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    else:
+                        play_sound_effect('ambient_noscore', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+
+                # Koordinaten der Pfeile
+                coords = []
+                for t in turns['throws']:
+                    if 'coords' in t:
+                        coords.append({"x": t['coords']['x'], "y": t['coords']['y']})
+
+                # ppi(str(coords))
+
+                # Suche das Koordinatenpaar, das am weitesten von den beiden Anderen entfernt ist
+                if len(coords) == 3:
+                    # Liste mit allen möglichen Kombinationen von Koordinatenpaaren erstellen
+                    combinations = [(coords[0], coords[1]), (coords[0], coords[2]), (coords[1], coords[2])]
+
+                    # Variablen für das ausgewählte Koordinatenpaar und die maximale Gesamtdistanz initialisieren
+                    selected_coord = None
+                    max_total_distance = 0
+
+                    # Gesamtdistanz für jede Kombination von Koordinatenpaaren berechnen
+                    for combination in combinations:
+                        dist1 = math.sqrt((combination[0]["x"] - combination[1]["x"])**2 + (combination[0]["y"] - combination[1]["y"])**2)
+                        dist2 = math.sqrt((combination[1]["x"] - combination[0]["x"])**2 + (combination[1]["y"] - combination[0]["y"])**2)
+                        total_distance = dist1 + dist2
+                        
+                        # Überprüfen, ob die Gesamtdistanz größer als die bisher größte Gesamtdistanz ist
+                        if total_distance > max_total_distance:
+                            max_total_distance = total_distance
+                            selected_coord = combination[0]
+
+                    group_score = 100.0
+                    if selected_coord != None:
+                        
+                        # Distanz von selected_coord zu coord2 berechnen
+                        dist1 = math.sqrt((selected_coord["x"] - coords[1]["x"])**2 + (selected_coord["y"] - coords[1]["y"])**2)
+
+                        # Distanz von selected_coord zu coord3 berechnen
+                        dist2 = math.sqrt((selected_coord["x"] - coords[2]["x"])**2 + (selected_coord["y"] -  coords[2]["y"])**2)
+
+                        # Durchschnitt der beiden Distanzen berechnen
+                        avg_dist = (dist1 + dist2) / 2
+
+                        group_score = (1.0 - avg_dist) * 100
+
+                    # ppi("Distance by max_dis_coord to coord2: " + str(dist1))
+                    # ppi("Distance by max_dis_coord to coord3: " + str(dist2))
+                    # ppi("Group-score: " + str(group_score))
+
+                    if group_score >= 98:
+                        play_sound_effect('ambient_group_legendary', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)   
+                    elif group_score >= 95:
+                        play_sound_effect('ambient_group_perfect', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    elif group_score >= 92:
+                        play_sound_effect('ambient_group_very_nice', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    elif group_score >= 89:
+                        play_sound_effect('ambient_group_good', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+                    elif group_score >= 86:
+                        play_sound_effect('ambient_group_normal', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+     
+        ppi("Turn ended")
+
+    mirror_sounds()
+
+    if isGameFin == True:
+        game_IsFinished = True
 
 def process_match_cricket(m):
-    currentPlayerIndex = m['player']
-    currentPlayer = m['players'][currentPlayerIndex]
-    currentPlayerName = str(currentPlayer['name']).lower()
-    currentPlayerIsBot = (m['players'][currentPlayerIndex]['cpuPPR'] is not None)
+    current_Player_Index = m['player']
+    current_Player = m['players'][current_Player_Index]
+    current_Player_Name = str(current_Player['name']).lower()
+    current_Player_IsBot = (m['players'][current_Player_Index]['cpuPPR'] is not None)
+
     turns = m['turns'][0]
-    variant = m['variant']
+    game_Variant = m['variant']
+
+    # DICT
+    segments = m['state']['segments']
+    #print(segments.keys())
+
+    segment = {}
+
+    numberOfPlayers = len(m['players'])
+    segmentState = [segment, current_Player_Index]
+
+    game_Mode = m["settings"]["gameMode"]
+    if game_Mode == "Tactics":
+        SUPPORTED_FIELDS = SUPPORTED_TACTICS_FIELDS
+        #ppi("game_Mode is Tactics")
+    else:
+        game_Mode == ""
+        SUPPORTED_FIELDS = SUPPORTED_CRICKET_FIELDS
+        #ppi("game_Mode is unset -> Cricket")
 
     isGameOn = False
     isGameFin = False
-    global isGameFinished
-    global lastPoints
+    global game_IsFinished
+    global points_Last
+    global segments_Previous
+
 
     # Call every thrown dart
     if CALL_EVERY_DART > 0 and turns != None and turns['throws'] != [] and len(turns['throws']) >= 1: 
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
 
-            throwAmount = len(turns['throws'])
-            type = turns['throws'][throwAmount - 1]['segment']['bed'].lower()
-            field_name = turns['throws'][throwAmount - 1]['segment']['name'].lower()
-            field_number = turns['throws'][throwAmount - 1]['segment']['number']
-            field_multiplier = turns['throws'][throwAmount - 1]['segment']['multiplier']
-    
-            if field_number not in SUPPORTED_CRICKET_FIELDS:
-                return
+            throw_Amount = len(turns['throws'])
+            field_Type = turns['throws'][throw_Amount - 1]['segment']['bed'].lower()
+            field_Name = turns['throws'][throw_Amount - 1]['segment']['name'].lower()
+            field_Number = turns['throws'][throw_Amount - 1]['segment']['number']
+            field_Number_str = str(field_Number)
+            field_Multiplier = turns['throws'][throw_Amount - 1]['segment']['multiplier']
             
+            # Prüfe, ob aktuelles Feld in der Liste ist
+            if field_Number in SUPPORTED_FIELDS:
+                # TODO fields already closed?
+                            
+                current_Segment_Hit = segments[field_Number_str]
+                current_Player_Segment_Hit_Count = current_Segment_Hit[current_Player_Index]
+                current_Player_Segment_Hit_Status = ""
 
-            # TODO fields already closed?
+                # Prüfe, ob das Feld noch offen ist
+                # Prüfe, ob andere das Feld bereits geschlossen haben
+                
+                if field_Type == 'outside':
+                    play_sound_effect("knock")
+                    print("DANEBEN")
 
+                    b_outsideHit = {
+                        "event": "outside",
+                        "player": current_Player_Name,
+                        "field": field_Number_str,
+                        "field_Type": field_Type,
+                        "game": {
+                            "game_Variant": game_Variant,
+                            "game_Mode": game_Mode,
+                            # TODO: fix
+                            "special": "TODO",
+                            "dartValue": field_Number
+                        }     
+                    }
+                    broadcast(b_outsideHit)
+                    return
 
-            # SINGLE-DART-SCORE
-            if CALL_EVERY_DART == 1:
-                score = field_number * field_multiplier
-                play_sound_effect(str(score))
+                if min(current_Segment_Hit) <3 :
+                    current_Player_Segment_Hit_Status = "open"
 
-            # SINGLE-DART-NAME
-            elif CALL_EVERY_DART == 2:
-                if field_number == 25 and field_multiplier == 1:
-                    field_name = 'bull'
-                elif field_number == 25 and field_multiplier == 2:
-                    field_name = 'bullseye'
+                    ppi("\tSegment - " + field_Number_str + " ( "+ field_Type +" ) hit - Status: " + current_Player_Segment_Hit_Status + " --- " + str(current_Segment_Hit)) 
+                    
+                    if current_Player_Segment_Hit_Count < 3:
+                        ppi(field_Number_str + " - to be closed by Player:  " + current_Player_Name + " - Hits left: "+ str( 3 - current_Player_Segment_Hit_Count) + " - " + str(current_Segment_Hit))
+                        #if (3 - current_Player_Segment_Hit_Count) == 0:
+                                            
+                        b_segmentHit = {
+                            "event": "field-hit",
+                            "player": current_Player_Name,
+                            "field": field_Number_str,
+                            "field_Type": field_Type,
+                            "game": {
+                                "game_Variant": game_Variant,
+                                "game_Mode": game_Mode,
+                                # TODO: fix
+                                "special": "TODO",
+                                "dartValue": field_Number
+                            }     
+                        }
+                        broadcast(b_segmentHit)
 
-                # bull
-                # bullseye 
-                # s1 to t20
-                # m1 to m20
-                if play_sound_effect(field_name) == False:
-                    field_number = str(field_number)
+                    elif current_Player_Segment_Hit_Count == 3:
+                        play_sound_effect("pling")
+                        ppi("Segment closed this turn")
 
-                    if type == 'singleouter' or type == 'singleinner':
-                        play_sound_effect(field_number)
-                    elif type == 'outside':
-                        play_sound_effect(type)
+                        b_fieldClosedNow = {
+                            "event": "field-closed",
+                            "player": current_Player_Name,
+                            "field": field_Number_str,
+                            "game": {
+                                "game_Variant": game_Variant,
+                                "game_Mode": game_Mode,
+                                # TODO: fix
+                                "special": "TODO"
+                            }     
+                        }
+                        broadcast(b_fieldClosedNow)
+
+                    elif (current_Player_Segment_Hit_Count >3) and (current_Player_Segment_Hit_Status == "open"):
+                        ppi(current_Player_Name + " - scored on " + field_Number_str)
+
+                        b_fieldScore = {
+                            "event": "field-score",
+                            "player": current_Player_Name,
+                            "field": field_Number_str,
+                            "game": {
+                                "game_Variant": game_Variant,
+                                "game_Mode": game_Mode,
+                                # TODO: fix
+                                "special": "TODO"
+                            }     
+                        }
+                        broadcast(b_fieldScore)
+
+                        play_sound_effect("pling")
+                        # return
                     else:
-                        if play_sound_effect(type):
-                            play_sound_effect(field_number, wait_for_last=True)
+                        ppi(current_Player_Name + " - closed " + field_Number_str)
+                    #     return
+                else: 
+                # if ( current_Player_Segment_Hit_Status == "closed") and (field_Number is in SUPPORTED_FIELDS):
+                    ppi("Segment - " + field_Number_str + " - is already closed")
+                    play_sound_effect("knockknock")
 
-            # SINGLE-DART-EFFECT
-            elif CALL_EVERY_DART == 3:
-                if field_number == 25 and field_multiplier == 1:
-                    field_name = 'bull'
-                elif field_number == 25 and field_multiplier == 2:
-                    field_name = 'bullseye'
+                    b_fieldAlreadyClosed = {
+                            "event": "field-already-closed",
+                            "player": current_Player_Name,
+                            "field": field_Number_str,
+                            "game": {
+                                "game_Variant": game_Variant,
+                                "game_Mode": game_Mode,
+                                # TODO: fix
+                                "special": "TODO"
+                            }     
+                        }
+                    broadcast(b_fieldAlreadyClosed)
+                    return
 
-                # effect_bull
-                # effect_bullseye 
-                # effect_s1 to effect_t20
-                # effect_m1 to effect_m20
-                if play_sound_effect('effect_' + field_name, mod = False) == False:
 
-                    # effect_single
-                    # effect_singleouter
-                    # effect_singleinner
-                    inner_outer = False
-                    if type == 'singleouter' or type == 'singleinner':
-                        inner_outer = play_sound_effect('effect_' + type, mod = False)
-                        if inner_outer == False:
-                            play_sound_effect('effect_single', mod = False)
+                # SINGLE-DART-SCORE
+                if CALL_EVERY_DART == 1:
+                    score = field_Number * field_Multiplier
+                    play_sound_effect(str(score))
 
-                    # effect_double
-                    # effect_triple 
-                    # effect_outside
-                    else:
-                        play_sound_effect('effect_' + type, mod = False)
+                # SINGLE-DART-NAME
+                elif CALL_EVERY_DART == 2:
+                    if field_Number == 25 and field_Multiplier == 1:
+                        field_Name = 'bull'
+                    elif field_Number == 25 and field_Multiplier == 2:
+                        field_Name = 'bullseye'
 
+                    if play_sound_effect(field_Name) == False:
+                        field_Number = str(field_Number)
+
+                        if field_Type == 'singleouter' or field_Type == 'singleinner':
+                            play_sound_effect(field_Number)
+                        elif field_Type == 'outside':
+                            play_sound_effect(field_Type)
+                        else:
+                            if play_sound_effect(field_Type):
+                                play_sound_effect(field_Number, wait_for_last=True)
+
+                # SINGLE-DART-EFFECT
+                elif CALL_EVERY_DART == 3:
+                    if field_Number == 25 and field_Multiplier == 1:
+                        field_Name = 'bull'
+                    elif field_Number == 25 and field_Multiplier == 2:
+                        field_Name = 'bullseye'
+
+                    # effect_bull
+                    # effect_bullseye 
+                    # effect_s1 to effect_t20
+                    # effect_m1 to effect_m20
+                    if play_sound_effect('effect_' + field_Name, mod = False) == False:
+
+                        # effect_single
+                        # effect_singleouter
+                        # effect_singleinner
+                        inner_outer = False
+                        if field_Type == 'singleouter' or field_Type == 'singleinner':
+                            inner_outer = play_sound_effect('effect_' + field_Type, mod = False)
+                            if inner_outer == False:
+                                play_sound_effect('effect_single', mod = False)
+
+                        # effect_double
+                        # effect_triple 
+                        # effect_outside
+                        else:
+                            play_sound_effect('effect_' + field_Type, mod = False)
+
+            else:
+                play_sound_effect("knock")
+
+                b_wrongSegmentHit = {
+                    "event": "wrong-segment-hit",
+                    "player": current_Player_Name,
+                    "field": field_Number_str,
+                    "game": {
+                        "game_Variant": game_Variant,
+                        "game_Mode": game_Mode,
+                        # TODO: fix
+                        "special": "TODO"
+                    }     
+                }
+                broadcast(b_wrongSegmentHit)
+                return
 
     # Check for matchshot
-    if m['winner'] != -1 and isGameFinished == False:
+    if m['winner'] != -1 and game_IsFinished == False:
         isGameFin = True
 
-        throwPoints = 0
-        lastPoints = ''
+        points_Throw = 0
+        points_Last = ''
         for t in turns['throws']:
             number = t['segment']['number']
-            if number in SUPPORTED_CRICKET_FIELDS:
-                throwPoints += (t['segment']['multiplier'] * number)
-                lastPoints += 'x' + str(t['segment']['name'])
-        lastPoints = lastPoints[1:]
+            if number in SUPPORTED_FIELDS:
+                points_Throw += (t['segment']['multiplier'] * number)
+                points_Last += 'x' + str(t['segment']['name'])
+        points_Last = points_Last[1:]
         
         matchWon = {
                 "event": "match-won",
-                "player": currentPlayerName,
+                "player": current_Player_Name,
                 "game": {
-                    "mode": variant,
-                    "dartsThrownValue": throwPoints                    
+                    "game_Variant": game_Variant,
+                    "gameMode" : game_Mode,
+                    "darts_ThrownValue": points_Throw                    
                 } 
             }
         broadcast(matchWon)
 
         if play_sound_effect('matchshot') == False:
             play_sound_effect('gameshot')
-        play_sound_effect(currentPlayerName, True)
+        play_sound_effect(current_Player_Name, True)
         
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_matchshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+            if play_sound_effect('ambient_matchshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
             elif play_sound_effect('ambient_matchshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
-            elif play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+            elif play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
             else:
                 play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
@@ -1908,33 +2592,34 @@ def process_match_cricket(m):
         ppi('Gameshot and match')
 
     # Check for gameshot
-    elif m['gameWinner'] != -1 and isGameFinished == False:
+    elif m['gameWinner'] != -1 and game_IsFinished == False:
         isGameFin = True
 
-        throwPoints = 0
-        lastPoints = ''
+        points_Throw = 0
+        points_Last = ''
         for t in turns['throws']:
             number = t['segment']['number']
-            if number in SUPPORTED_CRICKET_FIELDS:
-                throwPoints += (t['segment']['multiplier'] * number)
-                lastPoints += 'x' + str(t['segment']['name'])
-        lastPoints = lastPoints[1:]
+            if number in SUPPORTED_FIELDS:
+                points_Throw += (t['segment']['multiplier'] * number)
+                points_Last += 'x' + str(t['segment']['name'])
+        points_Last = points_Last[1:]
         
         gameWon = {
                 "event": "game-won",
-                "player": currentPlayerName,
+                "player": current_Player_Name,
                 "game": {
-                    "mode": variant,
-                    "dartsThrownValue": throwPoints
+                    "game_Variant": game_Variant,
+                    "gameMode" : game_Mode,
+                    "darts_ThrownValue": points_Throw
                 } 
             }
         broadcast(gameWon)
 
         play_sound_effect('gameshot')
-        play_sound_effect(currentPlayerName, True)
+        play_sound_effect(current_Player_Name, True)
         
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+            if play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
             else:
                 play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
@@ -1946,20 +2631,21 @@ def process_match_cricket(m):
     # Check for matchon
     elif m['gameScores'][0] == 0 and m['scores'] == None and turns['throws'] == [] and m['round'] == 1 and m['leg'] == 1 and m['set'] == 1:
         isGameOn = True
-        isGameFinished = False
+        game_IsFinished = False
 
         matchStarted = {
             "event": "match-started",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
+                "game_Mode": game_Mode,
                 # TODO: fix
                 "special": "TODO"
                 }     
             }
         broadcast(matchStarted)
 
-        play_sound_effect(currentPlayerName, False)
+        play_sound_effect(current_Player_Name, False)
         if play_sound_effect('matchon', True) == False:
             play_sound_effect('gameon', True)
         
@@ -1968,9 +2654,9 @@ def process_match_cricket(m):
         #     if play_sound_effect('ambient_matchon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS) == False:
         #         play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS)
         if AMBIENT_SOUNDS != 0.0:
-            state = play_sound_effect('ambient_matchon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
+            state = play_sound_effect('ambient_matchon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
             if state == False and play_sound_effect('ambient_matchon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
-                if play_sound_effect('ambient_gameon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+                if play_sound_effect('ambient_gameon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                     play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)    
         
         ppi('Matchon')
@@ -1978,43 +2664,45 @@ def process_match_cricket(m):
     # Check for gameon
     elif m['gameScores'][0] == 0 and m['scores'] == None and turns['throws'] == [] and m['round'] == 1:
         isGameOn = True
-        isGameFinished = False
+        game_IsFinished = False
         
         gameStarted = {
             "event": "game-started",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
+                "game_Mode": game_Mode,
                 # TODO: fix
                 "special": "TODO"
                 }     
             }
         broadcast(gameStarted)
 
-        play_sound_effect(currentPlayerName, False)
+        play_sound_effect(current_Player_Name, False)
         play_sound_effect('gameon', True)
 
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_gameon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+            if play_sound_effect('ambient_gameon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                 play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
 
         ppi('Gameon')
 
     # Check for busted turn
     elif turns['busted'] == True:
-        lastPoints = "B"
-        isGameFinished = False
+        points_Last = "B"
+        game_IsFinished = False
         busted = { 
                     "event": "busted",
-                    "player": currentPlayerName,
-                    "playerIsBot": str(currentPlayerIsBot),
+                    "player": current_Player_Name,
+                    "playerIsBot": str(current_Player_IsBot),
                     "game": {
-                        "mode": variant
+                        "game_Variant": game_Variant,
+                        "game_Mode": game_Mode,
                     }       
                 }
         broadcast(busted)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             play_sound_effect('busted')
             if AMBIENT_SOUNDS != 0.0:
                 play_sound_effect('ambient_noscore', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
@@ -2022,72 +2710,127 @@ def process_match_cricket(m):
 
     # Check for 1. Dart
     elif turns != None and turns['throws'] != [] and len(turns['throws']) == 1:
-        isGameFinished = False
-
+        game_IsFinished = False
+    
     # Check for 2. Dart
     elif turns != None and turns['throws'] != [] and len(turns['throws']) == 2:
-        isGameFinished = False
+        game_IsFinished = False
 
     # Check for 3. Dart - points call
     elif turns != None and turns['throws'] != [] and len(turns['throws']) == 3:
-        isGameFinished = False
+        game_IsFinished = False
 
         # TODO fields already closed?
-        throwPoints = 0
-        lastPoints = ''
+
+
+        points_Throw = 0
+        points_Last = ''
+        
+        target_Hits = 0
+        target_Last = ''
+        
+        countable_Check = (current_Player_Segment_Hit_Count - 3)
+
         for t in turns['throws']:
             number = t['segment']['number']
-            if number in SUPPORTED_CRICKET_FIELDS:
-                throwPoints += (t['segment']['multiplier'] * number)
-                lastPoints += 'x' + str(t['segment']['name'])
-        lastPoints = lastPoints[1:]
+            for number in SUPPORTED_FIELDS:
+                    # print("od: ",oldData[str(s)])
+                    # print("nd: ",newData[str(s)])
+                    if segments[str(number)] != segments_Previous[str(number)]:
+                        print("value changed for segment: ", number)
+                        current_Player_Segment_Hit_Count = segments[str(number)][current_Player_Index]
+                        currentPlayerPrevSegmentCount = segments_Previous[str(number)][current_Player_Index]
+                        currentPlayerSegmentCountDifference = current_Player_Segment_Hit_Count - currentPlayerPrevSegmentCount
+                          
+                        if currentPlayerPrevSegmentCount >3:
+                            print("Countable Hit: " + str(currentPlayerSegmentCountDifference))
+                            print("Segment: ", number, " - was - ", currentPlayerPrevSegmentCount, " - now ", current_Player_Segment_Hit_Count , " -- diff = ", currentPlayerSegmentCountDifference)
 
-        dartsThrown = {
+                        if number in SUPPORTED_FIELDS:
+                            if ( countable_Check <=1):
+                                print("Countable-Check: ",countable_Check)
+                                # Points made
+                                points_Throw += (t['segment']['multiplier'] * number)
+                                points_Last += 'x' + str(t['segment']['name'])
+
+                                target_Hits += (number)
+                                target_Last += 'x' + str(t['segment']['number'])
+
+                            else :
+                                #field = "closed"
+                                points_Throw += (t['segment']['multiplier'] * number)
+                                points_Last += 'x' + str(t['segment']['name'])
+
+        #points_Last = points_Last[1:]
+        points_Last = turns["points"]
+        #print("----")
+        #print("current Segments: (segments)", segments)
+        #print("segments_Previous: (segments_Previous)", segments_Previous)
+
+        
+
+
+        print("----")
+        print("points_Last: ", points_Last)
+        print("points_Throw: ", points_Throw)
+        print("\n\r")
+        print("target_Last: ", target_Last)
+        print("target_Hits: ", target_Hits)
+
+        darts_Thrown = {
             "event": "darts-thrown",
-            "player": currentPlayerName,
-            "playerIsBot": str(currentPlayerIsBot),
+            "player": current_Player_Name,
+            "playerIsBot": str(current_Player_IsBot),
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 "dartNumber": "3",
-                "dartValue": throwPoints,        
+                "dartValue": points_Last,        
 
             }
         }
-        broadcast(dartsThrown)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
-            if CALL_EVERY_DART == 0 or CALL_EVERY_DART_TOTAL_SCORE == True:
-                play_sound_effect(str(throwPoints), wait_for_last=CALL_EVERY_DART != 0)
+        takeout = {
+            "event": "takeout"
+        }
+        broadcast(takeout)
+        broadcast(darts_Thrown)
+
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
+            if CALL_EVERY_DART == 0 or CALL_EVERY_DART_TOTAL_SCORE == True and points_Last != "0":
+                play_sound_effect(str(points_Last), wait_for_last=CALL_EVERY_DART != 0)
 
             if AMBIENT_SOUNDS != 0.0:
-                if throwPoints == 0:
+                if points_Throw == 0:
                     play_sound_effect('ambient_noscore', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints == 180:
+                elif points_Throw == 180:
                     play_sound_effect('ambient_180', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints >= 153:
+                elif points_Throw >= 153:
                     play_sound_effect('ambient_150more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)   
-                elif throwPoints >= 120:
+                elif points_Throw >= 120:
                     play_sound_effect('ambient_120more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints >= 100:
+                elif points_Throw >= 100:
                     play_sound_effect('ambient_100more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints >= 50:
+                elif points_Throw >= 50:
                     play_sound_effect('ambient_50more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
 
         ppi("Turn ended")
+
+        #play_sound_effect("next")
     
 
     # Playerchange
-    if isGameOn == False and turns != None and turns['throws'] == [] or isGameFinished == True:
+    if isGameOn == False and turns != None and turns['throws'] == [] or game_IsFinished == True:
         dartsPulled = {
             "event": "darts-pulled",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
+                "game_Mode": game_Mode,
                 # TODO: fix
                 "pointsLeft": "0",
                 # TODO: fix
-                "dartsThrown": "3",
-                "dartsThrownValue": lastPoints,
+                "darts_Thrown": "3",
+                "darts_ThrownValue": points_Last,
                 "busted": str(turns['busted'])
                 # TODO: fix
                 # "darts": [
@@ -2099,382 +2842,52 @@ def process_match_cricket(m):
         }
         broadcast(dartsPulled)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             if CALL_CURRENT_PLAYER == 2:
-                play_sound_effect(currentPlayerName)
-
-        if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_playerchange_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
-                play_sound_effect('ambient_playerchange', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-        
-        ppi("Next player")
-
-    mirror_sounds()
-
-    if isGameFin == True:
-        isGameFinished = True
-
-def process_match_tactics(m):
-    currentPlayerIndex = m['player']
-    currentPlayer = m['players'][currentPlayerIndex]
-    currentPlayerName = str(currentPlayer['name']).lower()
-    currentPlayerIsBot = (m['players'][currentPlayerIndex]['cpuPPR'] is not None)
-    turns = m['turns'][0]
-    variant = m['variant']
-    
-    isGameOn = False
-    isGameFin = False
-    global isGameFinished
-    global lastPoints
-
-    # Call every thrown dart
-    if CALL_EVERY_DART > 0 and turns != None and turns['throws'] != [] and len(turns['throws']) >= 1: 
-
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
-
-            throwAmount = len(turns['throws'])
-            type = turns['throws'][throwAmount - 1]['segment']['bed'].lower()
-            field_name = turns['throws'][throwAmount - 1]['segment']['name'].lower()
-            field_number = turns['throws'][throwAmount - 1]['segment']['number']
-            field_multiplier = turns['throws'][throwAmount - 1]['segment']['multiplier']
-    
-            if field_number not in SUPPORTED_TACTICS_FIELDS:
-                return
+                play_sound_effect(current_Player_Name)
             
-
-            # TODO fields already closed?
-
-
-            # SINGLE-DART-SCORE
-            if CALL_EVERY_DART == 1:
-                score = field_number * field_multiplier
-                play_sound_effect(str(score))
-
-            # SINGLE-DART-NAME
-            elif CALL_EVERY_DART == 2:
-                if field_number == 25 and field_multiplier == 1:
-                    field_name = 'bull'
-                elif field_number == 25 and field_multiplier == 2:
-                    field_name = 'bullseye'
-
-                # bull
-                # bullseye 
-                # s1 to t20
-                # m1 to m20
-                if play_sound_effect(field_name) == False:
-                    field_number = str(field_number)
-
-                    if type == 'singleouter' or type == 'singleinner':
-                        play_sound_effect(field_number)
-                    elif type == 'outside':
-                        play_sound_effect(type)
-                    else:
-                        if play_sound_effect(type):
-                            play_sound_effect(field_number, wait_for_last=True)
-
-            # SINGLE-DART-EFFECT
-            elif CALL_EVERY_DART == 3:
-                if field_number == 25 and field_multiplier == 1:
-                    field_name = 'bull'
-                elif field_number == 25 and field_multiplier == 2:
-                    field_name = 'bullseye'
-
-                # effect_bull
-                # effect_bullseye 
-                # effect_s1 to effect_t20
-                # effect_m1 to effect_m20
-                if play_sound_effect('effect_' + field_name, mod = False) == False:
-
-                    # effect_single
-                    # effect_singleouter
-                    # effect_singleinner
-                    inner_outer = False
-                    if type == 'singleouter' or type == 'singleinner':
-                        inner_outer = play_sound_effect('effect_' + type, mod = False)
-                        if inner_outer == False:
-                            play_sound_effect('effect_single', mod = False)
-
-                    # effect_double
-                    # effect_triple 
-                    # effect_outside
-                    else:
-                        play_sound_effect('effect_' + type, mod = False)
-
-
-    # Check for matchshot
-    if m['winner'] != -1 and isGameFinished == False:
-        isGameFin = True
-
-        throwPoints = 0
-        lastPoints = ''
-        for t in turns['throws']:
-            number = t['segment']['number']
-            if number in SUPPORTED_TACTICS_FIELDS:
-                throwPoints += (t['segment']['multiplier'] * number)
-                lastPoints += 'x' + str(t['segment']['name'])
-        lastPoints = lastPoints[1:]
-        
-        matchWon = {
-                "event": "match-won",
-                "player": currentPlayerName,
-                "game": {
-                    "mode": variant,
-                    "dartsThrownValue": throwPoints                    
-                } 
-            }
-        broadcast(matchWon)
-
-        if play_sound_effect('matchshot') == False:
-            play_sound_effect('gameshot')
-        play_sound_effect(currentPlayerName, True)
-        
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_matchshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
-                pass
-            elif play_sound_effect('ambient_matchshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
-                pass
-            elif play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
-                pass
-            else:
-                play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-        
-        setup_caller()
-        ppi('Gameshot and match')
-
-    # Check for gameshot
-    elif m['gameWinner'] != -1 and isGameFinished == False:
-        isGameFin = True
-
-        throwPoints = 0
-        lastPoints = ''
-        for t in turns['throws']:
-            number = t['segment']['number']
-            if number in SUPPORTED_TACTICS_FIELDS:
-                throwPoints += (t['segment']['multiplier'] * number)
-                lastPoints += 'x' + str(t['segment']['name'])
-        lastPoints = lastPoints[1:]
-        
-        gameWon = {
-                "event": "game-won",
-                "player": currentPlayerName,
-                "game": {
-                    "mode": variant,
-                    "dartsThrownValue": throwPoints
-                } 
-            }
-        broadcast(gameWon)
-
-        play_sound_effect('gameshot')
-        play_sound_effect(currentPlayerName, True)
-        
-        if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
-                pass
-            else:
-                play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-        
-        if RANDOM_CALLER == 2:
-            setup_caller()
-        ppi('Gameshot')
-    
-    # Check for matchon
-    elif m['gameScores'][0] == 0 and m['scores'] == None and turns['throws'] == [] and m['round'] == 1 and m['leg'] == 1 and m['set'] == 1:
-        isGameOn = True
-        isGameFinished = False
-
-        matchStarted = {
-            "event": "match-started",
-            "player": currentPlayerName,
-            "game": {
-                "mode": variant,
-                # TODO: fix
-                "special": "TODO"
-                }     
-            }
-        broadcast(matchStarted)
-
-        play_sound_effect(currentPlayerName, False)
-        if play_sound_effect('matchon', True) == False:
-            play_sound_effect('gameon', True)
-        
-        # play only if it is a real match not just legs!
-        # if AMBIENT_SOUNDS != 0.0 and ('legs' in m and 'sets'):
-        #     if play_sound_effect('ambient_matchon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS) == False:
-        #         play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS)
-        if AMBIENT_SOUNDS != 0.0:
-            state = play_sound_effect('ambient_matchon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-            if state == False and play_sound_effect('ambient_matchon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
-                if play_sound_effect('ambient_gameon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
-                    play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)    
-        
-        ppi('Matchon')
-
-    # Check for gameon
-    elif m['gameScores'][0] == 0 and m['scores'] == None and turns['throws'] == [] and m['round'] == 1:
-        isGameOn = True
-        isGameFinished = False
-        
-        gameStarted = {
-            "event": "game-started",
-            "player": currentPlayerName,
-            "game": {
-                "mode": variant,
-                # TODO: fix
-                "special": "TODO"
-                }     
-            }
-        broadcast(gameStarted)
-
-        play_sound_effect(currentPlayerName, False)
-        play_sound_effect('gameon', True)
-
-        if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_gameon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
-                play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-
-        ppi('Gameon')
-
-    # Check for busted turn
-    elif turns['busted'] == True:
-        lastPoints = "B"
-        isGameFinished = False
-        busted = { 
-                    "event": "busted",
-                    "player": currentPlayerName,
-                    "playerIsBot": str(currentPlayerIsBot),
-                    "game": {
-                        "mode": variant
-                    }       
-                }
-        broadcast(busted)
-
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
-            play_sound_effect('busted')
-            if AMBIENT_SOUNDS != 0.0:
-                play_sound_effect('ambient_noscore', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-            ppi('Busted')
-
-    # Check for 1. Dart
-    elif turns != None and turns['throws'] != [] and len(turns['throws']) == 1:
-        isGameFinished = False
-
-    # Check for 2. Dart
-    elif turns != None and turns['throws'] != [] and len(turns['throws']) == 2:
-        isGameFinished = False
-
-    # Check for 3. Dart - points call
-    elif turns != None and turns['throws'] != [] and len(turns['throws']) == 3:
-        isGameFinished = False
-
-        # TODO fields already closed?
-        throwPoints = 0
-        lastPoints = ''
-        for t in turns['throws']:
-            number = t['segment']['number']
-            if number in SUPPORTED_TACTICS_FIELDS:
-                throwPoints += (t['segment']['multiplier'] * number)
-                lastPoints += 'x' + str(t['segment']['name'])
-        lastPoints = lastPoints[1:]
-
-        dartsThrown = {
-            "event": "darts-thrown",
-            "player": currentPlayerName,
-            "playerIsBot": str(currentPlayerIsBot),
-            "game": {
-                "mode": variant,
-                "dartNumber": "3",
-                "dartValue": throwPoints,        
-
-            }
-        }
-        broadcast(dartsThrown)
-
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
-            if CALL_EVERY_DART == 0 or CALL_EVERY_DART_TOTAL_SCORE == True:
-                play_sound_effect(str(throwPoints), wait_for_last=CALL_EVERY_DART != 0)
-
-            if AMBIENT_SOUNDS != 0.0:
-                if throwPoints == 0:
-                    play_sound_effect('ambient_noscore', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints == 180:
-                    play_sound_effect('ambient_180', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints >= 153:
-                    play_sound_effect('ambient_150more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)   
-                elif throwPoints >= 120:
-                    play_sound_effect('ambient_120more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints >= 100:
-                    play_sound_effect('ambient_100more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-                elif throwPoints >= 50:
-                    play_sound_effect('ambient_50more', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
-
-        ppi("Turn ended")
-    
-
-    # Playerchange
-    if isGameOn == False and turns != None and turns['throws'] == [] or isGameFinished == True:
-        dartsPulled = {
-            "event": "darts-pulled",
-            "player": currentPlayerName,
-            "game": {
-                "mode": variant,
-                # TODO: fix
-                "pointsLeft": "0",
-                # TODO: fix
-                "dartsThrown": "3",
-                "dartsThrownValue": lastPoints,
-                "busted": str(turns['busted'])
-                # TODO: fix
-                # "darts": [
-                #     {"number": "1", "value": "60"},
-                #     {"number": "2", "value": "60"},
-                #     {"number": "3", "value": "60"}
-                # ]
-            }
-        }
-        broadcast(dartsPulled)
-
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
-            if CALL_CURRENT_PLAYER == 2:
-                play_sound_effect(currentPlayerName)
-
-        if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_playerchange_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+            if play_sound_effect('ambient_playerchange_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                 play_sound_effect('ambient_playerchange', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
         
+        #CurrentPlayerPreviousSegmentState[current_Player_Index] = current_Player_Segment_Hit_Count
         ppi("Next player")
 
-    mirror_sounds()
+    #mirror_sounds()
+
+    segments_Previous = segments
 
     if isGameFin == True:
-        isGameFinished = True
+        game_IsFinished = True
+
 
 def process_match_atc(m):
-    global isGameFinished
+    global game_IsFinished
 
-    variant = m['variant']
+    game_Variant = m['variant']
     needHits = m['settings']['hits']
-    currentPlayerIndex = m['player']
-    currentPlayer = m['players'][currentPlayerIndex]
-    currentPlayerName = str(currentPlayer['name']).lower()
-    currentPlayerIsBot = (m['players'][currentPlayerIndex]['cpuPPR'] is not None)
+    current_Player_Index = m['player']
+    current_Player = m['players'][current_Player_Index]
+    current_Player_Name = str(current_Player['name']).lower()
+    current_Player_IsBot = (m['players'][current_Player_Index]['cpuPPR'] is not None)
     numberOfPlayers = len(m['players'])
     isRandomOrder = m['settings']['order'] == 'Random-Bull'
 
     turns = m['turns'][0]
-    matchshot = (m['winner'] != -1 and isGameFinished == False)
+    matchshot = (m['winner'] != -1 and game_IsFinished == False)
 
-    currentTargetsPlayer = m['state']['currentTargets'][currentPlayerIndex]
-    currentTarget = m['state']['targets'][currentPlayerIndex][int(currentTargetsPlayer)]
+    currentTargetsPlayer = m['state']['currentTargets'][current_Player_Index]
+    currentTarget = m['state']['targets'][current_Player_Index][int(currentTargetsPlayer)]
 
     # weird behavior by the api i guess?
     if currentTarget['count'] == 0 and int(currentTargetsPlayer) > 0 and turns['throws'] != []:
-        currentTarget = m['state']['targets'][currentPlayerIndex][int(currentTargetsPlayer) -1]
+        currentTarget = m['state']['targets'][current_Player_Index][int(currentTargetsPlayer) -1]
 
 
     if turns is not None and turns['throws']:
-        isGameFinished = False
+        game_IsFinished = False
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             lastThrow = turns['throws'][-1]
             targetHit = lastThrow['segment']['number']
 
@@ -2503,13 +2916,13 @@ def process_match_atc(m):
 
 
     if matchshot:
-        isGameFinished = True
+        game_IsFinished = True
         matchWon = {
             "event": "match-won",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
-                "dartsThrownValue": "0"
+                "game_Variant": game_Variant,
+                "darts_ThrownValue": "0"
             } 
         }
         broadcast(matchWon)
@@ -2518,14 +2931,14 @@ def process_match_atc(m):
             play_sound_effect('gameshot')
 
         if CALL_CURRENT_PLAYER >= 1:
-            play_sound_effect(currentPlayerName, True)
+            play_sound_effect(current_Player_Name, True)
 
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_matchshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+            if play_sound_effect('ambient_matchshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
             elif play_sound_effect('ambient_matchshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
-            elif play_sound_effect('ambient_gameshot_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
+            elif play_sound_effect('ambient_gameshot_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False):
                 pass
             else:
                 play_sound_effect('ambient_gameshot', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
@@ -2535,31 +2948,31 @@ def process_match_atc(m):
     # only call next if more hits then 1
     elif currentTarget['hits'] == needHits and turns['throws'] != [] and (needHits > 1 or isRandomOrder):
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             play_sound_effect('atc_target_next', True)
             # only call next target number if random order
             if isRandomOrder:
-                play_sound_effect(str(m['state']['targets'][currentPlayerIndex][int(currentTargetsPlayer)]['number']), True)
+                play_sound_effect(str(m['state']['targets'][current_Player_Index][int(currentTargetsPlayer)]['number']), True)
 
 
     if turns['throws'] == []:
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_playerchange_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+            if play_sound_effect('ambient_playerchange_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                 play_sound_effect('ambient_playerchange', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             if CALL_CURRENT_PLAYER == 2 and numberOfPlayers > 1:
-                play_sound_effect(currentPlayerName, True)
+                play_sound_effect(current_Player_Name, True)
     
     mirror_sounds()
 
 def process_match_rtw(m):
-    global isGameFinished
+    global game_IsFinished
 
-    variant = m['variant']
-    currentPlayerIndex = m['player']
-    currentPlayerName = m['players'][currentPlayerIndex]['name'].lower()
-    currentPlayerIsBot = (m['players'][currentPlayerIndex]['cpuPPR'] is not None)
+    game_Variant = m['variant']
+    current_Player_Index = m['player']
+    current_Player_Name = m['players'][current_Player_Index]['name'].lower()
+    current_Player_IsBot = (m['players'][current_Player_Index]['cpuPPR'] is not None)
     numberOfPlayers = len(m['players'])
     isRandomOrder = m['settings']['order'] == 'Random-Bull'
     winningPlayerIndex = int(m['winner'])
@@ -2578,22 +2991,22 @@ def process_match_rtw(m):
         currentTarget = 25
 
     gameon = (0 == m['gameScores'][0] and turn['throws'] == [])
-    matchover = (winningPlayerIndex != -1 and isGameFinished == False)
+    matchover = (winningPlayerIndex != -1 and game_IsFinished == False)
     
     if turn is not None and turn['throws']:
-        isGameFinished = False
+        game_IsFinished = False
 
 
     # Darts pulled (Playerchange and Possible-checkout)
-    if gameon == False and turn != None and turn['throws'] == [] or isGameFinished == True:
+    if gameon == False and turn != None and turn['throws'] == [] or game_IsFinished == True:
         dartsPulled = {
             "event": "darts-pulled",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 # TODO: fix
-                "dartsThrown": "3",
-                "dartsThrownValue": points,
+                "darts_Thrown": "3",
+                "darts_ThrownValue": points,
                 # TODO: fix
                 # "darts": [
                 #     {"number": "1", "value": "60"},
@@ -2608,7 +3021,7 @@ def process_match_rtw(m):
 
     elif CALL_EVERY_DART > 0 and turn is not None and turn['throws'] and not isRandomOrder:
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             lastThrow = turn['throws'][-1]
             targetHit = lastThrow['segment']['number']
 
@@ -2634,20 +3047,20 @@ def process_match_rtw(m):
 
     # Check for 3. Dart - points call
     if turn != None and turn['throws'] != [] and len(turn['throws']) == 3:
-        dartsThrown = {
+        darts_Thrown = {
             "event": "darts-thrown",
-            "player": currentPlayerName,
-            "playerIsBot": str(currentPlayerIsBot),
+            "player": current_Player_Name,
+            "playerIsBot": str(current_Player_IsBot),
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 "dartNumber": "3",
                 "dartValue": points,        
 
             }
         }
-        broadcast(dartsThrown)
+        broadcast(darts_Thrown)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             play_sound_effect(str(points), True)
             if AMBIENT_SOUNDS != 0.0:
                 if int(points) == 0:
@@ -2667,13 +3080,13 @@ def process_match_rtw(m):
     
 
     if matchover:
-        isGameFinished = True
+        game_IsFinished = True
         matchWon = {
             "event": "match-won",
             "player": m['players'][winningPlayerIndex],
             "game": {
-                "mode": variant,
-                "dartsThrownValue": "0"
+                "game_Variant": game_Variant,
+                "darts_ThrownValue": "0"
             } 
         }
         broadcast(matchWon)
@@ -2699,60 +3112,60 @@ def process_match_rtw(m):
 
     if m['gameScores'][0] == 0 and m['scores'] == None and turn['throws'] == [] and m['round'] == 1:
         isGameOn = True
-        isGameFinished = False
+        game_IsFinished = False
         
         gameStarted = {
             "event": "game-started",
-            "player": currentPlayerName,
+            "player": current_Player_Name,
             "game": {
-                "mode": variant,
+                "game_Variant": game_Variant,
                 # TODO: fix
                 "special": "TODO"
                 }     
             }
         broadcast(gameStarted)
 
-        play_sound_effect(currentPlayerName, False)
+        play_sound_effect(current_Player_Name, False)
         play_sound_effect('gameon', True)
 
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_gameon_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+            if play_sound_effect('ambient_gameon_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                 play_sound_effect('ambient_gameon', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
 
         ppi('Gameon')
 
     # only call next target number if random order
     if isRandomOrder:
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             # [int(currentTargetsPlayer)] REMOVE?!
-            play_sound_effect(str(m['state']['targets'][currentPlayerIndex]['number']), True)
+            play_sound_effect(str(m['state']['targets'][current_Player_Index]['number']), True)
 
 
     if turn['throws'] == []:
         if AMBIENT_SOUNDS != 0.0:
-            if play_sound_effect('ambient_playerchange_' + currentPlayerName, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
+            if play_sound_effect('ambient_playerchange_' + current_Player_Name, AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False) == False:
                 play_sound_effect('ambient_playerchange', AMBIENT_SOUNDS_AFTER_CALLS, volume_mult = AMBIENT_SOUNDS, mod = False)
 
-        if currentPlayerIsBot == False or CALL_BOT_ACTIONS:
+        if current_Player_IsBot == False or CALL_BOT_ACTIONS:
             if CALL_CURRENT_PLAYER == 2 and numberOfPlayers > 1:
-                play_sound_effect(currentPlayerName, True)
+                play_sound_effect(current_Player_Name, True)
     
     mirror_sounds()
 
 def process_bulling(m):
-    global isBullingFinished
-    currentPlayerIndex = m['player']
-    currentPlayer = m['players'][currentPlayerIndex]
-    currentPlayerName = str(currentPlayer['name']).lower()
-    currentPlayerIsBot = (m['players'][currentPlayerIndex]['cpuPPR'] is not None)
+    global bulling_IsFinished
+    current_Player_Index = m['player']
+    current_Player = m['players'][current_Player_Index]
+    current_Player_Name = str(current_Player['name']).lower()
+    current_Player_IsBot = (m['players'][current_Player_Index]['cpuPPR'] is not None)
     gameshot = m['gameWinner'] != -1
 
     if gameshot == True:
-        isBullingFinished = True
+        bulling_IsFinished = True
         bullingEnd = {
             "event": "bulling-end",
-            "player": currentPlayerName,
-            "playerIsBot": str(currentPlayerIsBot)
+            "player": current_Player_Name,
+            "playerIsBot": str(current_Player_IsBot)
         }
         broadcast(bullingEnd)
 
@@ -2761,11 +3174,11 @@ def process_bulling(m):
             play_sound_effect('bulling_end', wait_for_last=True)
     else:
         if m['round'] == 1 and m['gameScores'] is None:  
-            isBullingFinished = False
+            bulling_IsFinished = False
             bullingStart = {
                 "event": "bulling-start",
-                "player": currentPlayerName,
-                "playerIsBot": str(currentPlayerIsBot)
+                "player": current_Player_Name,
+                "playerIsBot": str(current_Player_IsBot)
             }
             broadcast(bullingStart)
 
@@ -2911,11 +3324,11 @@ def on_open_autodarts(ws):
 def on_message_autodarts(ws, message):
     def process(*args):
         try:
-            global currentMatch
+            global current_Match
             global lobbyPlayers
             global lastMessage
             m = json.loads(message)
-            # ppi(json.dumps(m, indent = 4, sort_keys = True))
+            #ppi(json.dumps(m, indent = 4, sort_keys = True))
   
             if m['channel'] == 'autodarts.matches':
                 data = m['data']
@@ -2924,38 +3337,46 @@ def on_message_autodarts(ws, message):
                 # if m['topic'].endswith('game-events'):
                 #     ppi(json.dumps(data, indent = 4, sort_keys = True))
 
-                # ppi('Current Match: ' + currentMatch)
+                # ppi('Current Match: ' + current_Match)
                 
                 if('turns' in data and len(data['turns']) >=1):
                     data['turns'][0].pop("id", None)
                     data['turns'][0].pop("createdAt", None)
 
-                if lastMessage != data and currentMatch != None and 'id' in data and data['id'] == currentMatch:
+                if lastMessage != data and current_Match != None and 'id' in data and data['id'] == current_Match:
                     lastMessage = data
 
                     # ppi(json.dumps(data, indent = 4, sort_keys = True))
 
                     # process_common(data)
 
-                    variant = data['variant']
-                    gameMode = data['settings']['gameMode']
+                    game_Variant = data['variant']
                     
-                    if variant == 'Bull-off':
+                    if game_Variant == 'Bull-off':
                         process_bulling(data)
 
-                    elif variant == 'X01' or variant == 'Random Checkout':
+                    elif game_Variant == 'X01' or game_Variant == 'Random Checkout':
+                        
                         process_match_x01(data)
                         
-                    elif variant == 'Cricket' and gameMode=='Tactics':
-                        process_match_tactics(data)
-                    
-                    elif variant == 'Cricket':
+                    elif game_Variant == 'Gotcha':
+                        process_match_gotcha(data)
+
+
+                    elif game_Variant == 'Cricket':
                         process_match_cricket(data)
-                    
-                    elif variant == 'ATC':
+                        
+                        # gameMode = data["settings"]["gameMode"]
+                        # if gameMode == "Tactics":
+                        #     process_match_tactics(data)
+                            
+                        # else:
+                        #     process_match_cricket(data)
+                                            
+                    elif game_Variant == 'ATC':
                         process_match_atc(data)
 
-                    elif variant == 'RTW':
+                    elif game_Variant == 'RTW':
                         process_match_rtw(data)
 
             elif m['channel'] == 'autodarts.boards':
@@ -2972,7 +3393,7 @@ def on_message_autodarts(ws, message):
                         # ppi("lobby-enter", data)
 
                         lobby_id = data['body']['id']
-                        currentMatch = 'lobby:' + lobby_id
+                        current_Match = 'lobby:' + lobby_id
 
                         ppi('Listen to lobby: ' + lobby_id)
                         paramsSubscribeLobbyEvents = {
@@ -2996,7 +3417,7 @@ def on_message_autodarts(ws, message):
                         # ppi("lobby-leave", data)
 
                         lobby_id = data['body']['id']
-                        currentMatch = None
+                        current_Match = None
 
                         ppi('Stop Listen to lobby: ' + lobby_id)
                         paramsUnsubscribeLobbyEvents = {
@@ -3039,7 +3460,7 @@ def on_message_autodarts(ws, message):
                         }
                         ws.send(json.dumps(paramsUnsubscribeLobbyEvents))
                         lobbyPlayers = []
-                        # currentMatch = None
+                        # current_Match = None
                         if play_sound_effect("ambient_lobby_out", False, mod = False):
                             mirror_sounds()
   
@@ -3070,7 +3491,7 @@ def on_message_autodarts(ws, message):
                         if play_sound_effect("ambient_lobby_out", False, mod = False):
                             mirror_sounds()
                         lobbyPlayers = []
-                        currentMatch = None
+                        current_Match = None
                         return
                         
 
@@ -3087,19 +3508,19 @@ def on_message_autodarts(ws, message):
 
                     for lpl in lobbyPlayersLeft:
                         lobbyPlayers.remove(lpl)
-                        player_name = str(lpl['name']).lower()
-                        ppi(player_name + " left the lobby")
+                        player_Name = str(lpl['name']).lower()
+                        ppi(player_Name + " left the lobby")
 
                         play_sound_effect('ambient_lobby_out', False, mod = False)
 
-                        if check_sounds([player_name, 'left']):
-                            play_sound_effect(player_name, True)
+                        if check_sounds([player_Name, 'left']):
+                            play_sound_effect(player_Name, True)
                             play_sound_effect('left', True)
                         
                         playerLeft = {
                             "event": "lobby",
                             "action": "player-left",
-                            "player": player_name
+                            "player": player_Name
                         }
                         broadcast(playerLeft)
 
@@ -3109,26 +3530,26 @@ def on_message_autodarts(ws, message):
                         player_id = p['userId']
                         if 'boardId' in p and p['boardId'] != AUTODART_USER_BOARD_ID and not any(lobbyPlayer['userId'] == player_id for lobbyPlayer in lobbyPlayers):
                             lobbyPlayers.append(p)
-                            player_name = str(p['name']).lower()
-                            player_avg = get_player_average(player_id)
-                            if player_avg != None:
-                                player_avg = str(math.ceil(player_avg))
+                            player_Name = str(p['name']).lower()
+                            player_AVG = get_player_average(player_id)
+                            if player_AVG != None:
+                                player_AVG = str(math.ceil(player_AVG))
 
-                            ppi(player_name + " (" + player_avg + " average) joined the lobby")
+                            ppi(player_Name + " (" + player_AVG + " average) joined the lobby")
 
                             play_sound_effect('ambient_lobby_in', False, mod = False)
 
-                            if check_sounds([player_name, 'average', player_avg]):
-                                play_sound_effect(player_name, True)
-                                if player_avg != None:
+                            if check_sounds([player_Name, 'average', player_AVG]):
+                                play_sound_effect(player_Name, True)
+                                if player_AVG != None:
                                     play_sound_effect('average', True)
-                                    play_sound_effect(player_avg, True)
+                                    play_sound_effect(player_AVG, True)
                             
                             playerJoined = {
                                 "event": "lobby",
                                 "action": "player-joined",
-                                "player": player_name,
-                                "average": player_avg
+                                "player": player_Name,
+                                "average": player_AVG
                             }
                             broadcast(playerJoined)
                             break
@@ -3200,9 +3621,9 @@ def handle_message(message):
         global CALL_BOT_ACTIONS
         global POSSIBLE_CHECKOUT_CALL
         global POSSIBLE_CHECKOUT_CALL_YOURSELF_ONLY
-        global isBullingFinished
-        global isGameFinished
-        global caller_profiles_favoured
+        global bulling_IsFinished
+        global game_IsFinished
+        global caller_Profiles_Favoured
 
         cid = str(request.sid)
 
@@ -3246,14 +3667,14 @@ def handle_message(message):
                 correct_throw(throw_indices, score)
                     
             elif message.startswith('next'):
-                if currentMatch is not None:
+                if current_Match is not None:
 
-                    if currentMatch.startswith('lobby'):
-                        start_match(currentMatch.split(':')[1])
-                    elif isBullingFinished == True:
-                        isBullingFinished = False
+                    if current_Match.startswith('lobby'):
+                        start_match(current_Match.split(':')[1])
+                    elif bulling_IsFinished == True:
+                        bulling_IsFinished = False
                         next_game()
-                    elif isGameFinished == False:
+                    elif game_IsFinished == False:
                         next_throw()
                     else:
                         next_game()
@@ -3326,9 +3747,9 @@ def handle_message(message):
             elif message.startswith('hello'):
                 welcome_event = {
                     "event": "welcome",
-                    "callersAvailable": callers_available,
-                    "callersFavoured": caller_profiles_favoured,
-                    "caller": caller_title_without_version
+                    "callersAvailable": caller_Available,
+                    "callersFavoured": caller_Profiles_Favoured,
+                    "caller": caller_Title_Without_Version
                 }
                 unicast(cid, welcome_event)
 
@@ -3374,10 +3795,10 @@ def handle_message(message):
 def index():
     return render_template('index.html',    app_version=VERSION, 
                                             db_name=WEB_DB_NAME, 
-                                            id=currentMatch,
+                                            id=current_Match,
                                             me=AUTODART_USER_BOARD_ID,
-                                            meHost=currentMatchHost,
-                                            players=currentMatchPlayers,
+                                            meHost=current_Match_Host,
+                                            players=current_Match_Players,
                                             languages=CALLER_LANGUAGES, 
                                             genders=CALLER_GENDERS,
                                             language=RANDOM_CALLER_LANGUAGE,
@@ -3518,44 +3939,45 @@ if __name__ == "__main__":
     global lastCorrectThrow
     lastCorrectThrow = None
 
-    global currentMatch
-    currentMatch = None
+    global current_Match
+    current_Match = None
 
-    global currentMatchPlayers
-    currentMatchPlayers = []
+    global current_Match_Players
+    current_Match_Players = []
 
-    global currentMatchHost
-    currentMatchHost = None
+    global current_Match_Host
+    current_Match_Host = None
 
-    global callers_profiles_all
-    callers_profiles_all = []
+    global caller_Profiles_All
+    caller_Profiles_All = []
 
-    global caller_profiles_banned
-    caller_profiles_banned = []
+    global caller_Profiles_Banned
+    caller_Profiles_Banned = []
 
-    global caller_profiles_favoured
-    caller_profiles_favoured = []
+    global caller_Profiles_Favoured
+    caller_Profiles_Favoured = []
 
-    global callers_available
-    callers_available = []
+    global caller_Available
+    caller_Available = []
 
     global caller
     caller = None
 
-    global caller_title
-    caller_title = ''
+    global caller_Title
+    caller_Title = ''
 
-    global caller_title_without_version
-    caller_title_without_version = ''
+    global caller_Title_Without_Version
+    caller_Title_Without_Version = ''
 
-    global lastPoints
-    lastPoints = None
+    global points_Last
+    points_Last = None
 
-    global isBullingFinished
-    isBullingFinished = False
+    global bulling_IsFinished
+    bulling_IsFinished = False
 
-    global isGameFinished
-    isGameFinished = False
+    global game_IsFinished
+    game_IsFinished = False
+
 
     global background_audios
     background_audios = None
@@ -3572,6 +3994,8 @@ if __name__ == "__main__":
     global lobbyPlayers
     lobbyPlayers = []
 
+    global game_Mode
+    global game_Variant
 
 
     osType = plat
@@ -3581,11 +4005,11 @@ if __name__ == "__main__":
     ppi('##########################################', None, '')
     ppi('       WELCOME TO DARTS-CALLER', None, '')
     ppi('##########################################', None, '')
-    ppi('VERSION: ' + VERSION, None, '')
-    ppi('RUNNING OS: ' + osType + ' | ' + osName + ' | ' + osRelease, None, '')
+    #ppi('VERSION: ' + VERSION, None, '')
+    #ppi('RUNNING OS: ' + osType + ' | ' + osName + ' | ' + osRelease, None, '')
     ppi('SUPPORTED GAME-VARIANTS: ' + " ".join(str(x) for x in SUPPORTED_GAME_VARIANTS), None, '')
-    ppi('DONATION: bitcoin:bc1q8dcva098rrrq2uqhv38rj5hayzrqywhudvrmxa', None, '')
-    ppi('\r\n', None, '')
+    #ppi('DONATION: bitcoin:bc1q8dcva098rrrq2uqhv38rj5hayzrqywhudvrmxa', None, '')
+    #ppi('\r\n', None, '')
 
     path_status = check_paths(__file__, AUDIO_MEDIA_PATH, AUDIO_MEDIA_PATH_SHARED)
     if path_status is not None: 
